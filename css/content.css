@@ -138,6 +138,10 @@ span[data-kvt-volume]:hover {
     padding: 0 4px 0 !important;
 }
 
+.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-footer-]:after{
+    display: none;
+}
+
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-] {
     border: none;
     margin: 1px;
