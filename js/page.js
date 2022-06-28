@@ -8,7 +8,8 @@ let kvtd = false,
         kvts: {},
         rcktMon: {}
     },
-    timeouts = {},
+    kvtTimeouts = {},
+    kvtPrices = {},
     kvtGroups = {
         1: "rgb(255, 212, 80)",
         2: "rgb(255, 123, 118)",
@@ -94,7 +95,7 @@ let kvtInject_TIMER = setInterval(() => {
             let kvtRoot = document.getElementById("root")
             if (kvtRoot && kvtRoot.querySelector("header") && !kvtRoot.classList.contains('kvtRoot')) {
                 kvtRoot.classList.add('kvtRoot')
-                kvtd ?? console.log('[kvt]', '!!! INITED !!!')
+                kvtd ?? console.log('[kvt] !!! INITED !!!')
                 kvtRun()
                 clearInterval(kvtInit_TIMER)
             }
@@ -520,55 +521,79 @@ function createSTIG(ticker) {
     }
 }
 
+/**
+ * Быстрые кнопки в деньгах
+ * @param {*} widget 
+ */
 function add_kvtFastVolumePriceButtons(widget) {
 
     if (widget && kvtSettings.kvtFastVolumePrice) {
         let widgetId = widget.getAttribute('data-widget-id'),
             ticker = widget.getAttribute('data-symbol-id'),
-            timeoutName = widgetId + '-' + ticker;
+            widgetName = `${widgetId}_${ticker}`,
+            price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
+            price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
+            diff = 0;
 
-        if (!timeouts[timeoutName]) {
-            timeouts[timeoutName] = setTimeout(function(){
-
-                let block = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]'),
-                    price = parseFloat(widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML.replace(/\s+/g, '').replace(/[,]+/g, '.'))
-
-                let insertBlock = widget.querySelector('.kvtFastVolumePrice');
-                if (!insertBlock) {
-                    block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
-                    insertBlock = widget.querySelector('.kvtFastVolumePrice');
-                } else {
-                    insertBlock.innerHTML = ''
-                }
-
-                let vols = [];
-                for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
-                    let vol = (i / price).toFixed();
-
-                    if (kvtSettings.kvtFastVolumePriceRound) {
-                        vol = customRound(vol)
-                    }
-
-                    if (!vols.includes(vol) && vol !== 0) {
-                        vols.push(vol);
-
-                        let vel = document.createElement('span')
-                        vel.setAttribute('data-kvt-volume', vol);
-                        vel.setAttribute('title', vol + ' шт');
-                        vel.innerHTML = kvth.sizeFormat(i);
-
-                        insertBlock.insertAdjacentElement('beforeend', vel)
-                        vel.onclick = e => {
-                            set_kvtFastVolume(widget, vol)
-                        }
-                    }
-                }
-
-                timeouts[timeoutName] = null
-
-            }, 500);
+        // Меняем только если нету или цена > || < 0.5% От ранее установленной.
+        if (kvtPrices[widgetName]) {
+            diff = (price - kvtPrices[widgetName]) * 100 / price;
+            if (diff <= -0.5 || diff >= 0.5) {
+                kvtd ?? console.log('[add_kvtFastVolumePriceButtons] разница', diff )
+                load_buttons()
+            }
+        } else {
+            load_buttons()
         }
-    }
+
+        async function load_buttons() {
+            kvtPrices[widgetName] = price;
+
+            let block = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]'),                
+                lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,"")
+
+            // Если фьюч, узнаем его стоимость
+            if (price_block.endsWith('пт.')) {
+                if (!kvtSettings.brokerAccountId) {
+                    kvtSettings.brokerAccountId = await kvtGetBrokerAccounts()
+                }
+
+                price = await getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+                kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${price}`)
+            }
+
+            let insertBlock = widget.querySelector('.kvtFastVolumePrice');
+            if (!insertBlock) {
+                block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
+                insertBlock = widget.querySelector('.kvtFastVolumePrice');
+            } else {
+                insertBlock.innerHTML = ''
+            }
+
+            let vols = [];
+            for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
+                let vol = (i / price / lot_size).toFixed();
+
+                if (kvtSettings.kvtFastVolumePriceRound) {
+                    vol = customRound(vol)
+                }
+
+                if (!vols.includes(vol) && vol !== 0) {
+                    vols.push(vol);
+
+                    let vel = document.createElement('span')
+                    vel.setAttribute('data-kvt-volume', vol);
+                    vel.setAttribute('title', vol + ' шт');
+                    vel.innerHTML = kvth.sizeFormat(i);
+
+                    insertBlock.insertAdjacentElement('beforeend', vel)
+                    vel.onclick = e => {
+                        set_kvtFastVolume(widget, vol)
+                    }
+                }
+            }
+        }
+    }    
 }
 
 function add_kvtFastVolumeSizeButtons(widget) {
@@ -652,14 +677,14 @@ function set_kvtFastSum (widget, sum) {
 
     let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
 
-    if (!timeouts[timeoutName]) {
-        timeouts[timeoutName] = setTimeout(function(){
+    if (!kvtTimeouts[timeoutName]) {
+        kvtTimeouts[timeoutName] = setTimeout(function(){
             // TODO: Найти более адекватный источник данных (мб запрос ttps://api-invest.tinkoff.ru/trading/stocks/get?ticker=*)
             let price = parseFloat(widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML.replace(/\s+/g, '').replace(/[,]+/g, '.'))
 
             set_kvtFastVolume(widget, (sum / price).toFixed())
 
-            timeouts[timeoutName] = null
+            kvtTimeouts[timeoutName] = null
 
         }, 500);
     }
@@ -969,4 +994,43 @@ function unsubscribe_getdp(widgetId) {
 
 function getKvtTsByGuid(guid) {
     return window.__kvtTs ? window.__kvtTs.find(item => item.guid === guid) : 0
+}
+
+/**
+ * Get used brokerAccountId
+ * @returns 
+ */
+async function kvtGetBrokerAccounts () {
+    return await fetch(`https://api-invest.tinkoff.ru/trading/user/broker_accounts?appName=invest_terminal&appVersion=&sessionId=${kvtSettings.psid}`, {
+        method: "POST",
+    }).then(function (e) {
+        return e.json();
+    }).then(function (e) {
+        return ((e.payload || {} ).accounts || [])[0].brokerAccountId
+    }).catch(err => {
+        console.error(`[kvt] getBrokerAccounts ERR ${err}`)
+        return null
+    })
+}
+
+/**
+ * 
+ * @param {string} ticker 
+ * @param {number} price 
+ * @param {number} brokerAccountId 
+ * @param {number} quantity 
+ * @returns 
+ */
+async function getFullPriceLimit (ticker, price, brokerAccountId, quantity = 1) {
+    return await fetch(`https://api-invest.tinkoff.ru/trading/order/full_price_limit?appName=invest_terminal&appVersion=2.0.0&sessionId=${kvtSettings.psid}`, {
+        method: "POST",
+        body: JSON.stringify({"quantity":quantity, "price":price, "operationType":"Buy", "brokerAccountId": brokerAccountId, "ticker": ticker})
+    }).then(function (e) {
+        return e.json();
+    }).then(function (e) {
+        return (((e.payload || {} ).fullAmount || {}).value || null)
+    }).catch(err => {
+        console.error(`[kvt] getFullPriceLimit ERR ${err}`)
+        return null
+    })
 }

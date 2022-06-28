@@ -56,6 +56,7 @@ async function run() {
 
         settings['extensionId'] = chrome.runtime.id
         settings['extensionVer'] = chrome.runtime.getManifest().version
+        settings['psid'] = getPsid()
 
         el.setAttribute("data-kvt-extension", "");
         el.textContent = JSON.stringify(settings)
