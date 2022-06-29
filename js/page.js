@@ -530,68 +530,77 @@ function add_kvtFastVolumePriceButtons(widget) {
     if (widget && kvtSettings.kvtFastVolumePrice) {
         let widgetId = widget.getAttribute('data-widget-id'),
             ticker = widget.getAttribute('data-symbol-id'),
-            widgetName = `${widgetId}_${ticker}`,
             price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
             diff = 0;
 
-        // Меняем только если нету или цена > || < 0.5% От ранее установленной.
-        if (kvtPrices[widgetName]) {
-            diff = (price - kvtPrices[widgetName]) * 100 / price;
-            if (diff <= -0.5 || diff >= 0.5) {
-                kvtd ?? console.log('[add_kvtFastVolumePriceButtons] разница', diff )
+        if (kvtPrices[widgetId]) {
+            if (kvtPrices[widgetId].ticker !== ticker) {
                 load_buttons()
+            } else {
+                // Меняем только если нету или цена > || < 0.5% От ранее установленной.
+                diff = (price - kvtPrices[widgetId].price) * 100 / price;
+                if (diff <= -0.5 || diff >= 0.5) {
+                    kvtd ?? console.log('[add_kvtFastVolumePriceButtons] разница', diff )
+                    load_buttons()
+                }
             }
         } else {
             load_buttons()
         }
 
         async function load_buttons() {
-            kvtPrices[widgetName] = price;
-
-            let block = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]'),                
-                lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,"")
-
-            // Если фьюч, узнаем его стоимость
-            if (price_block.endsWith('пт.')) {
-                if (!kvtSettings.brokerAccountId) {
-                    kvtSettings.brokerAccountId = await kvtGetBrokerAccounts()
-                }
-
-                price = await getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
-                kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${price}`)
+            kvtPrices[widgetId] = {
+                price: price,
+                ticker: ticker                
             }
 
-            let insertBlock = widget.querySelector('.kvtFastVolumePrice');
-            if (!insertBlock) {
-                block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
-                insertBlock = widget.querySelector('.kvtFastVolumePrice');
-            } else {
-                insertBlock.innerHTML = ''
-            }
+            setTimeout(async function() {
+                let block = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]'),                
+                    lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,"")
 
-            let vols = [];
-            for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
-                let vol = (i / price / lot_size).toFixed();
+                // Если фьюч, узнаем его стоимость
+                if (price_block.endsWith('пт.')) {
+                    if (!kvtSettings.brokerAccountId) {
+                        kvtSettings.brokerAccountId = await kvtGetBrokerAccounts()
+                    }
 
-                if (kvtSettings.kvtFastVolumePriceRound) {
-                    vol = customRound(vol)
+                    price = await getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+                    kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${price}`)
                 }
 
-                if (!vols.includes(vol) && vol !== 0) {
-                    vols.push(vol);
+                let insertBlock = widget.querySelector('.kvtFastVolumePrice');
+                if (!insertBlock) {
+                    // kvtFastVolumeSize
+                    block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
+                    insertBlock = widget.querySelector('.kvtFastVolumePrice');
+                } else {
+                    insertBlock.innerHTML = ''
+                }
 
-                    let vel = document.createElement('span')
-                    vel.setAttribute('data-kvt-volume', vol);
-                    vel.setAttribute('title', vol + ' шт');
-                    vel.innerHTML = kvth.sizeFormat(i);
+                let vols = [];
+                for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
+                    let vol = (i / price / lot_size).toFixed();
 
-                    insertBlock.insertAdjacentElement('beforeend', vel)
-                    vel.onclick = e => {
-                        set_kvtFastVolume(widget, vol)
+                    if (kvtSettings.kvtFastVolumePriceRound) {
+                        vol = customRound(vol)
+                    }
+
+                    if (!vols.includes(vol) && vol !== 0) {
+                        vols.push(vol);
+
+                        let vel = document.createElement('span')
+                        vel.setAttribute('data-kvt-volume', vol);
+                        vel.setAttribute('title', vol + ' шт');
+                        vel.innerHTML = kvth.sizeFormat(i);
+
+                        insertBlock.insertAdjacentElement('beforeend', vel)
+                        vel.onclick = e => {
+                            set_kvtFastVolume(widget, vol)
+                        }
                     }
                 }
-            }
+            }, 100)            
         }
     }    
 }
