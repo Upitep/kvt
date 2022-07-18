@@ -160,12 +160,12 @@ function kvtRun() {
                     // Создаём Виджеты
                     kvtCreateWidget(mutation.target.closest('[data-widget-type="SUBSCRIPTIONS_WIDGET"]'))
 
-                    // Если добавили новый виджет заявки
+                    // Если добавили новый виджет заявки / сменили таб
                     let el = mutation.target.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')
                     if (el && !el.classList.contains('kvt-widget-load')) {
                         el.classList.add('kvt-widget-load')
                         add_kvtFastVolumeSizeButtons(el)
-                        add_kvtFastVolumePriceButtons(el)
+                        add_kvtFastVolumePriceButtons(el, true)
                         add_IsShortTicker(el)
                     }
                 }
@@ -212,8 +212,10 @@ function kvtRun() {
                     }
                 }
 
-                // При смене табов отписываемся от разных данных
+                // При смене табов
                 if (mutation.target.getAttribute('id') === 'SpacePanel') {
+
+                    //  отписываемся от разных данных
                     if (window.__kvtTs) {
                         for (let item of window.__kvtTs) {
                             unsubscribe_spbTS(item.widgetId)
@@ -225,6 +227,9 @@ function kvtRun() {
                             unsubscribe_getdp(item.widgetId)
                         }
                     }
+
+                    // Удаляем цены для кнопок add_kvtFastVolumePriceButtons
+                    kvtPrices = {}
                 }
             }
         })
@@ -234,6 +239,27 @@ function kvtRun() {
         attributeOldValue: true,
         attributeFilter: ['data-symbol-id', 'data-space-id']
     })    
+}
+
+
+function waitForElm(selector) {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
+
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                resolve(document.querySelector(selector));
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
 }
 
 function alor_connect(resubscribe = false) {
@@ -525,16 +551,19 @@ function createSTIG(ticker) {
  * Быстрые кнопки в деньгах
  * @param {*} widget 
  */
-function add_kvtFastVolumePriceButtons(widget) {
+async function add_kvtFastVolumePriceButtons(widget, create = false) {
 
     if (widget && kvtSettings.kvtFastVolumePrice) {
+
+        await waitForElm('[class^="src-components-OrderHeader-styles-price-"]')
+
         let widgetId = widget.getAttribute('data-widget-id'),
             ticker = widget.getAttribute('data-symbol-id'),
             price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
             diff = 0;
 
-        if (kvtPrices[widgetId]) {
+        if (kvtPrices[widgetId] && !create) {
             if (kvtPrices[widgetId].ticker !== ticker) {
                 load_buttons()
             } else {
@@ -600,7 +629,7 @@ function add_kvtFastVolumePriceButtons(widget) {
                         }
                     }
                 }
-            }, 100)            
+            }, 1)            
         }
     }    
 }
