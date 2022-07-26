@@ -532,10 +532,12 @@ span[data-kvt-volume]:hover {
 }
 
 /* Лента принтов СПБ */
+.kvt-widget-content tr {
+    position: relative;
+}
 .kvt-widget-content td{
     padding: 1px 3px !important;
     text-align: left;
-    position: relative;
     border-top: 1px solid rgba(var(--pro-base-00),1);
 }
 .kvt-widget-table tr.type-buy td {
@@ -574,6 +576,28 @@ span[data-kvt-volume]:hover {
     padding: 2px !important;
     text-align: center;
     font-size: 11px;
+}
+
+.getdp-stigButtons {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: linear-gradient(90deg, transparent, rgba(var(--pro-base-02),1));
+    padding: 0 6px 0 27px;
+    height: 100%;
+    visibility: hidden;    
+}
+
+.kvt-widget-content .getdp-item:hover {
+    box-shadow: inset 0 0 22px rgba(var(--pro-base-06),1);
+    transition: all .1s ease-in;
+}
+
+.kvt-widget-content .getdp-item:hover .getdp-stigButtons{
+    opacity: 1;
+    visibility: visible;
+    transition: all .1s ease-in;
 }
 
 /* scroll */

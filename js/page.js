@@ -28,22 +28,35 @@ let kvtd = false,
         15: "rgb(75, 208, 225)",
         16: "rgb(115, 176, 119)",
     },
-    kvtWidgets = {
+    kvtWidgets = { // FIXME: где-то надо брать lotSize для Ру акций, потому что неполучится посчитать VOL
         spbTS: {
-            name: 'T&S SPBX',
+            name: 'T&S',
             icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 15C11.866 15 15 11.866 15 8C15 4.134 11.866 1 8 1C4.134 1 1 4.134 1 8C1 11.866 4.134 15 8 15ZM10.6745 9.62376L8.99803 8.43701L8.9829 4.5097C8.98078 3.95742 8.53134 3.51143 7.97906 3.51356C7.42678 3.51568 6.98079 3.96512 6.98292 4.5174L7.00019 9.00001C7.00152 9.34537 7.18096 9.66281 7.47482 9.84425L9.62376 11.3255C10.0937 11.6157 10.7099 11.4699 11 11C11.2901 10.5301 11.1444 9.91391 10.6745 9.62376Z" fill="rgb(var(--pro-icon-color))"></path></svg>',
-            template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Price</th><th>Size</th><th>Vol.$</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
+            template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Price</th><th>Size</th><th>Vol.</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
             templateItem: (jd) => {
-                return `<tr class="type-${jd.side}" data-ts-id="${jd.id}"><td>${kvth._ft(jd.price)}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td></tr>`
+                let line = document.createElement('tr');
+                line.classList.add(`type-${jd.side}`);
+                line.setAttribute("data-ts-id", jd.id);
+                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price/*  * jd.lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
+
+                return line;
             },
-            unsubscribe: unsubscribe_spbTS
+            unsubscribe: unsubscribe_TS
         },
         getdp: {
             name: 'GETDP',
             icon: '',
             template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Ticker</th><th>Size</th><th>Price</th><th>Vol.$</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
             templateItem: (jd) => {
-                return `<tr class="type-${jd.side}" data-ts-id="${jd.id}"><td class="item-ticker"><div><span>${jd.text}</span><span class="item-ticker-symbol">${jd.symbol}</span><span>${jd.smallCap ? '⚠️' : ''}</span></div></td><td>${kvth.sizeFormat(jd.qty)}</td><td>${kvth._ft(jd.price)}</td><td class="item-total">${kvth.sizeFormat(jd.qty * jd.price)}</td><td class="item-timestamp">${kvth._tsToTime(jd.timestamp).padStart(12)}</td></tr>`
+                let line = document.createElement('tr');
+                line.classList.add(`type-${jd.side}`);
+                line.classList.add('getdp-item');
+                line.setAttribute("data-ts-id", jd.id);
+
+                line.innerHTML = `<td class="item-ticker"><div><span>${jd.text}</span><span class="item-ticker-symbol">${jd.symbol}</span><span>${jd.smallCap ? '⚠️' : ''}</span></div></td><td>${kvth.sizeFormat(jd.qty)}</td><td>${kvth._ft(jd.price)}</td><td class="item-total">${kvth.sizeFormat(jd.qty * jd.price)}</td><td class="item-timestamp">${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
+
+                line.querySelector('.item-timestamp').insertAdjacentElement('beforeEnd', createSTIGline(jd.symbol));
+                return line;
             },
             unsubscribe: unsubscribe_getdp
         }
@@ -218,7 +231,7 @@ function kvtRun() {
                     //  отписываемся от разных данных
                     if (window.__kvtTs) {
                         for (let item of window.__kvtTs) {
-                            unsubscribe_spbTS(item.widgetId)
+                            unsubscribe_TS(item.widgetId)
                         }
                     }
 
@@ -271,8 +284,8 @@ function alor_connect(resubscribe = false) {
             window.__alorws.onopen = (e) => {
                 if (window.__kvtTs && resubscribe) {
                     for (let item of window.__kvtTs) {
-                        kvtd ?? console.warn('subscribe_spb_TS_1')
-                        subscribe_spb_TS(item.widgetId, item.ticker, item.guid)
+                        kvtd ?? console.warn('subscribe_TS_1')
+                        subscribe_TS(item.widgetId, item.ticker, item.guid)
                     }
                 }
             };
@@ -353,8 +366,8 @@ function kvt_connect(resubscribe = false) {
         // Переподписка на TS
         if (window.__kvtTs && resubscribe) {
             for (let item of window.__kvtTs) {
-                kvtd ?? console.warn('subscribe_spb_TS_5')
-                subscribe_spb_TS(item.widgetId, item.ticker, item.guid)
+                kvtd ?? console.warn('subscribe_TS_5')
+                subscribe_TS(item.widgetId, item.ticker, item.guid)
             }
         }
 
@@ -517,11 +530,26 @@ function getActiveGroupsWidget() {
     return activeGroupsIds.sort((a, b) => a - b);
 }
 
+function createSTIGline(ticker) {
+    let groups = window.__kvtWidgetGroups ? window.__kvtWidgetGroups : getActiveGroupsWidget()
+
+    if (groups.length) {
+        let el = document.createElement('div');
+        el.classList.add('getdp-stigButtons')
+
+        for (let i of groups) {    
+            el.insertAdjacentElement("beforeEnd", createVel(ticker, i));        
+        }
+        return el;
+    }
+}
+
+
 function createSTIG(ticker) {
 
-    let a = getActiveGroupsWidget()
+    let groups = getActiveGroupsWidget()
 
-    if (a.length) {
+    if (groups.length) {
         let t = document.querySelector('[class*=src-components-Menu-styles-item-]'),
             el = document.querySelector('.kvt-stigButtons');
 
@@ -533,18 +561,24 @@ function createSTIG(ticker) {
             t.insertAdjacentElement("afterend", el);
         }
 
-        for (let i of a) {
-            let vel = document.createElement('div')
-            vel.className = 'kvt-stig-item';
-            vel.style.cssText = "color: " + kvtGroups[i]/* + " !important;"*/;
-            vel.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="currentColor"></circle></svg>';
-
-            el.insertAdjacentElement("beforeEnd", vel);
-            vel.onclick = e => {
-                setTickerInGroup(ticker, i)
-            }
+        for (let i of groups) {
+            el.insertAdjacentElement("beforeEnd", createVel(ticker, i));
         }
     }
+}
+
+function createVel(ticker, groupId) {
+    let vel = document.createElement('div')
+
+    vel.className = 'kvt-stig-item';
+    vel.style.cssText = "color: " + kvtGroups[groupId];
+    vel.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="currentColor"></circle></svg>';
+
+    vel.onclick = e => {
+        setTickerInGroup(ticker, groupId)
+    }
+
+    return vel;
 }
 
 /**
@@ -786,15 +820,15 @@ function kvtCreateWidget(widget) {
             kvtd ?? console.log('[kvt][spbTS]', 'хотим подписаться на ', widgetID, symbol)
             
             if (symbol.length) {
-                kvtd ?? console.warn('subscribe_spb_TS_3')
-                subscribe_spb_TS(widgetID, symbol)
+                kvtd ?? console.warn('subscribe_TS_3')
+                subscribe_TS(widgetID, symbol)
             }
             observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
-                unsubscribe_spbTS(widgetID);
-                kvtd ?? console.warn('subscribe_spb_TS_4')
-                subscribe_spb_TS(widgetID, newSymbol);
+                unsubscribe_TS(widgetID);
+                kvtd ?? console.warn('subscribe_TS_4')
+                subscribe_TS(widgetID, newSymbol);
             })
-            onClose = unsubscribe_spbTS
+            onClose = unsubscribe_TS
         }
 
         if (widgetType === 'getdp') {
@@ -851,11 +885,11 @@ function insetItemsContent(widgetId, data) {
                     wContent.insertAdjacentHTML('beforeend', `<tr class="type-separator"><td colspan="100%">🔸🔸🔹🔹 ${(jdTime.getUTCDate() + "").padStart(2, "0")}-${(jdTime.getUTCMonth() + 1 + "").padStart(2, "0")}-${jdTime.getUTCFullYear()} 🔹🔹🔸🔸</td></tr>`)
                 }
 
-                wContent.insertAdjacentHTML('beforeend', kvtWidgets[wType].templateItem(jd))
+                wContent.insertAdjacentElement('beforeend', kvtWidgets[wType].templateItem(jd))
             }
         } else {
             for (let jd of data) {
-                wContent.insertAdjacentHTML('afterbegin', kvtWidgets[wType].templateItem(jd))
+                wContent.insertAdjacentElement('afterbegin', kvtWidgets[wType].templateItem(jd))
                 if (399 < wContent.children.length) {
                     wContent.lastChild.remove();
                 }
@@ -885,14 +919,14 @@ function observeWidgetChangeTicker(widget, widgetType, callback) {
     })
 }
 
-function subscribe_spb_TS(widgetId, ticker, guid = '') {
+async function subscribe_TS(widgetId, ticker, guid = '') {
     !window.__kvtTs ? window.__kvtTs = [] : 0
     let obj = {widgetId: widgetId, guid: guid ? guid : kvth.uuidv4(), ticker: ticker}
 
     window.__kvtTs = window.__kvtTs.filter(i => i.widgetId !== widgetId);
     window.__kvtTs.push(obj)
 
-    kvtd ?? console.log('[kvt][subscribe_spb_TS]', 'subscribe_spb_TS', obj.widgetId, obj.ticker)
+    kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
 
     if (kvtSettings.alorTS) {
         let subscribe_alorws_TIMER = setInterval(() => {
@@ -910,9 +944,9 @@ function subscribe_spb_TS(widgetId, ticker, guid = '') {
     
                 clearInterval(subscribe_alorws_TIMER)
     
-                kvtd ?? console.log('[kvt][subscribe_spb_TS]', 'Вроде подписался')
+                kvtd ?? console.log('[kvt][subscribe_TS] Вроде подписался')
             } else {
-                kvtd ?? console.log('[kvt][subscribe_spb_TS]', 'Не подписался, сокет не готов')
+                kvtd ?? console.log('[kvt][subscribe_TS] Не подписался, сокет не готов')
             }
         }, 100);
 
@@ -924,7 +958,8 @@ function subscribe_spb_TS(widgetId, ticker, guid = '') {
                 guid: obj.guid
             }));
         }   
-    } else {        
+    } else {   
+        // DEL:      
         if (window.__kvtWS && window.__kvtWS.readyState === 1) {
             window.__kvtWS.send(JSON.stringify({
                 user_id: kvtSettings.telegramId,
@@ -936,9 +971,9 @@ function subscribe_spb_TS(widgetId, ticker, guid = '') {
     }    
 }
 
-function unsubscribe_spbTS(widgetId) {
+function unsubscribe_TS(widgetId) {
 
-    kvtd ?? console.log('[kvt][unsubscribe_spbTS]', widgetId)
+    kvtd ?? console.log('[kvt][unsubscribe_TS]', widgetId)
 
     let obj = window.__kvtTs ? window.__kvtTs.find(item => item.widgetId === widgetId) : 0
 
@@ -951,7 +986,7 @@ function unsubscribe_spbTS(widgetId) {
                     "guid": obj.guid
                 }));
 
-                kvtd ?? console.log('[kvt][unsubscribe_spbTS][alor] отписался от ', widgetId)
+                kvtd ?? console.log('[kvt][unsubscribe_TS][alor] отписался от ', widgetId)
             }
         } else {
             if (window.__kvtWS && window.__kvtWS.readyState === 1) {
