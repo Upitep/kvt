@@ -536,7 +536,6 @@ function createSTIGline(ticker) {
     if (groups.length) {
         let el = document.createElement('div');
         el.classList.add('getdp-stigButtons')
-
         for (let i of groups) {    
             el.insertAdjacentElement("beforeEnd", createVel(ticker, i));        
         }
@@ -928,47 +927,18 @@ async function subscribe_TS(widgetId, ticker, guid = '') {
 
     kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
 
-    if (kvtSettings.alorTS) {
-        let subscribe_alorws_TIMER = setInterval(() => {
-            if (kvtStates.alor.httpCode === 403) {  // TODO: !== 200 ???
-                clearInterval(subscribe_alorws_TIMER)
-            } else if (window.__alorws && window.__alorws.readyState === 1) {
-                window.__alorws.send(JSON.stringify({
-                    "opcode": "AllTradesGetAndSubscribe",
-                    "code": ticker,
-                    "exchange": "SPBX",
-                    "delayed": false,
-                    "token": kvtAlorJWT,
-                    "guid": obj.guid
-                }));
-    
-                clearInterval(subscribe_alorws_TIMER)
-    
-                kvtd ?? console.log('[kvt][subscribe_TS] Вроде подписался')
-            } else {
-                kvtd ?? console.log('[kvt][subscribe_TS] Не подписался, сокет не готов')
-            }
-        }, 100);
+    let symbolDetail = await getSymbolDetail(widgetId)
+    console.log('symbolDetail', symbolDetail)
 
-        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-            window.__kvtWS.send(JSON.stringify({
-                user_id: kvtSettings.telegramId,
-                type: 'getLastTrades',
-                ticker: ticker,
-                guid: obj.guid
-            }));
-        }   
-    } else {   
-        // DEL:      
-        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-            window.__kvtWS.send(JSON.stringify({
-                user_id: kvtSettings.telegramId,
-                type: 'subscribeTS',
-                ticker: ticker,
-                guid: obj.guid
-            }));
-        }
-    }    
+    if (window.__kvtWS && window.__kvtWS.readyState === 1) {
+        window.__kvtWS.send(JSON.stringify({
+            user_id: kvtSettings.telegramId,
+            type: 'subscribeTS',
+            ticker: ticker,
+            guid: obj.guid,
+            exchange: symbolDetail.exchange
+        }));
+    }
 }
 
 function unsubscribe_TS(widgetId) {
@@ -978,26 +948,14 @@ function unsubscribe_TS(widgetId) {
     let obj = window.__kvtTs ? window.__kvtTs.find(item => item.widgetId === widgetId) : 0
 
     if (obj) {
-        if (kvtSettings.alorTS) {
-            if (window.__alorws && window.__alorws.readyState === 1) {
-                window.__alorws.send(JSON.stringify({
-                    "opcode": "unsubscribe",
-                    "token": kvtAlorJWT,
-                    "guid": obj.guid
-                }));
+        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
+            window.__kvtWS.send(JSON.stringify({
+                user_id: kvtSettings.telegramId,
+                type: 'unsubscribeTS',
+                guid: obj.guid
+            }));
 
-                kvtd ?? console.log('[kvt][unsubscribe_TS][alor] отписался от ', widgetId)
-            }
-        } else {
-            if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-                window.__kvtWS.send(JSON.stringify({
-                    user_id: kvtSettings.telegramId,
-                    type: 'unsubscribeTS',
-                    guid: obj.guid
-                }));
-    
-                kvtd ?? console.log('[kvt][unsubscribe_getdp]', 'отписался от ', widgetId)
-            }
+            kvtd ?? console.log('[kvt][unsubscribe_getdp]', 'отписался от ', widgetId)
         }
 
         // удалим
@@ -1067,6 +1025,17 @@ function unsubscribe_getdp(widgetId) {
 
 function getKvtTsByGuid(guid) {
     return window.__kvtTs ? window.__kvtTs.find(item => item.guid === guid) : 0
+}
+
+function getSymbolDetail(widgetId) {
+    let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="packages-core-lib-components-WidgetBody-WidgetBody-search-"] > span > span`);
+    if (el) {
+        let reactObjectName = Object.keys(el).find(function (key) {
+            return key.startsWith("__reactFiber$")
+        });
+        
+        return el[reactObjectName].memoizedProps.children._owner.memoizedProps.selected
+    }
 }
 
 /**
