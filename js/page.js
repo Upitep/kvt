@@ -4,7 +4,7 @@ let kvtd = false,
     kvth,
     kvtSettings,
     kvtStates = {
-        alor: {},
+        alor: {}, //DEL
         kvts: {},
         rcktMon: {}
     },
@@ -28,6 +28,7 @@ let kvtd = false,
         15: "rgb(75, 208, 225)",
         16: "rgb(115, 176, 119)",
     },
+    kvtTickers = {},
     kvtWidgets = { // FIXME: где-то надо брать lotSize для Ру акций, потому что неполучится посчитать VOL
         spbTS: {
             name: 'T&S',
@@ -37,7 +38,7 @@ let kvtd = false,
                 let line = document.createElement('tr');
                 line.classList.add(`type-${jd.side}`);
                 line.setAttribute("data-ts-id", jd.id);
-                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price/*  * jd.lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
+                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * kvtTickers[jd.symbol].lotSize)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
 
                 return line;
             },
@@ -63,6 +64,121 @@ let kvtd = false,
     };
 
 
+// TODO: обернуть всё в класс
+class KvaloodTools {
+
+    constructor () {
+
+    }
+
+    waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+    
+            const observer = new MutationObserver(mutations => {
+                if (document.querySelector(selector)) {
+                    resolve(document.querySelector(selector));
+                    observer.disconnect();
+                }
+            });
+    
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+
+    reactGetEl (t) {
+        var e = Object.keys(t).find(function (t) {
+            return t.startsWith("__reactProps$")
+        });
+        return e ? t[e] : null
+    }
+
+    customRound(val, n = 100) {
+        return Math.round(val / n) * n;
+    }
+
+    /**
+     * Установка индикации состояния сервиса
+     * @param {string} name 
+     * @param {init} state 
+     * @param {string} msg 
+     * @param {string} httpCode 
+     */
+    setState(name, state, msg, httpCode) {
+        kvtStates[name] = {state: state, msg: msg, httpCode: httpCode}
+    
+        let st = document.querySelector(`[data-kvt-state-name=${name}]`)
+        if (st) {
+            st.setAttribute("data-kvt-state-value", state)
+            st.setAttribute("title", `${name} - ${msg}`)
+        }
+    }
+
+    /**
+     * Информация о тикере спрятанная в react
+     * @param {*} widgetId 
+     * @returns 
+     */
+    getSymbolDetail(widgetId) {
+        let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="packages-core-lib-components-WidgetBody-WidgetBody-search-"] > span > span`);
+        if (el) {
+            let reactObjectName = Object.keys(el).find(function (key) {
+                return key.startsWith("__reactFiber$")
+            });
+            
+            return el[reactObjectName].memoizedProps.children._owner.memoizedProps.selected
+        }
+    }
+
+    /**
+     * Get used brokerAccountId
+     * @returns 
+     */
+    async getBrokerAccounts () {
+        return await fetch(`https://api-invest.tinkoff.ru/trading/user/broker_accounts?appName=invest_terminal&appVersion=&sessionId=${kvtSettings.psid}`, {
+            method: "POST",
+        }).then(function (e) {
+            return e.json();
+        }).then(function (e) {
+            return ((e.payload || {} ).accounts || [])[0].brokerAccountId
+        }).catch(err => {
+            console.error(`[kvt] getBrokerAccounts ERR ${err}`)
+            return null
+        })
+    }
+
+    /**
+     * 
+     * @param {string} ticker 
+     * @param {number} price 
+     * @param {number} brokerAccountId 
+     * @param {number} quantity 
+     * @returns 
+     */
+    async getFullPriceLimit (ticker, price, brokerAccountId, quantity = 1) {
+        return await fetch(`https://api-invest.tinkoff.ru/trading/order/full_price_limit?appName=invest_terminal&appVersion=2.0.0&sessionId=${kvtSettings.psid}`, {
+            method: "POST",
+            body: JSON.stringify({"quantity":quantity, "price":price, "operationType":"Buy", "brokerAccountId": brokerAccountId, "ticker": ticker})
+        }).then(function (e) {
+            return e.json();
+        }).then(function (e) {
+            return (((e.payload || {} ).fullAmount || {}).value || null)
+        }).catch(err => {
+            console.error(`[kvt] getFullPriceLimit ERR ${err}`)
+            return null
+        })
+    }
+
+}
+
+const kvt = new KvaloodTools();
+
+
 let kvtInject_TIMER = setInterval(() => {
     if (document.querySelector("[data-kvt-extension]") !== null) {
         clearInterval(kvtInject_TIMER)
@@ -79,20 +195,20 @@ let kvtInject_TIMER = setInterval(() => {
             kvt_connect()
         
             if (kvtSettings.alorToken) {
-                if (kvtSettings.alorTS) {
+                if (kvtSettings.alorTS) { // DEL alorTS
                     alor_connect()
                 } else {
                     kvtd ?? console.log('[kvt][alor]', 'Нет необходимости подключаться');
-                    kvtStateSet('alor', 3, `Нет необходимости подключаться`)
+                    kvt.setState('alor', 3, `Нет необходимости подключаться`)
                 }                
             } else {
                 kvtd ?? console.log('[kvt][alor]', 'Токена нет');
-                kvtStateSet('alor', 0, `Токена нет`)
+                kvt.setState('alor', 0, `Токена нет`)
             }
         } else {
             kvtd ?? console.warn('[kvt]', 'telegramId и/или kvt токен не установлен')
-            kvtStateSet('kvts', 0, `telegramId и/или kvt токен не установлен`)
-            kvtStateSet('alor', 0, `telegramId и/или kvt токен не установлен`)
+            kvt.setState('kvts', 0, `telegramId и/или kvt токен не установлен`)
+            kvt.setState('alor', 0, `telegramId и/или kvt токен не установлен`)
         }
 
         // Подключение к rcktMon
@@ -100,7 +216,7 @@ let kvtInject_TIMER = setInterval(() => {
             rcktMonConnect();
         } else {
             kvtd ?? console.warn('[kvt]', `Опция 'Переключать тикеры из RcktMon' выключена`)
-            kvtStateSet('rcktMon', 0, `Опция 'Переключать тикеры из RcktMon' выключена`)
+            kvt.setState('rcktMon', 0, `Опция 'Переключать тикеры из RcktMon' выключена`)
         }
 
         // Запуск оболочки
@@ -177,6 +293,7 @@ function kvtRun() {
                     let el = mutation.target.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')
                     if (el && !el.classList.contains('kvt-widget-load')) {
                         el.classList.add('kvt-widget-load')
+                        console.warn('1 add_kvtFastVolumePriceButtons') //DEL
                         add_kvtFastVolumeSizeButtons(el)
                         add_kvtFastVolumePriceButtons(el, true)
                         add_IsShortTicker(el)
@@ -187,6 +304,7 @@ function kvtRun() {
 
                     // Добавим быстрый объем в $. следим за input цены справа вверху в виджете заявки
                     if (mutation.target.parentElement && mutation.target.parentElement.matches('[class*="src-containers-Animated-styles-clickable-"]')) {
+                        console.warn('3 add_kvtFastVolumePriceButtons') // DEL
                         add_kvtFastVolumePriceButtons(mutation.target.parentElement.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]'));
                     }
                 }
@@ -205,8 +323,8 @@ function kvtRun() {
     let widgets = document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]')
     if (widgets.length) {
         widgets.forEach(function (widget) {
-            //widget.classList.contains('kvt-widget-load')
             widget.classList.add('kvt-widget-load')
+            console.warn('2 add_kvtFastVolumePriceButtons') // DEL
             add_kvtFastVolumeSizeButtons(widget)
             add_kvtFastVolumePriceButtons(widget)
             add_IsShortTicker(widget)
@@ -255,26 +373,6 @@ function kvtRun() {
 }
 
 
-function waitForElm(selector) {
-    return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            return resolve(document.querySelector(selector));
-        }
-
-        const observer = new MutationObserver(mutations => {
-            if (document.querySelector(selector)) {
-                resolve(document.querySelector(selector));
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    });
-}
-
 function alor_connect(resubscribe = false) {
     kvtSyncAlorAccessToken().then(res => {
 
@@ -297,17 +395,17 @@ function alor_connect(resubscribe = false) {
                 
                 if (json.httpCode === 200) {
                     kvtd ?? console.log('[kvt][alor ws]', 'Подключен к вебсокету Alor'); // FIXME: надо что-то с этим сделать. Будет постоянно лезть при подписке.
-                    kvtStateSet('alor', 2, `Подключен к вебсокету Alor`, 200)
+                    kvt.setState('alor', 2, `Подключен к вебсокету Alor`, 200)
                 }
 
                 if (json.httpCode === 400) {
                     kvtd ?? console.log('[kvt][alor ws]', `Ошибка подключения. Сообщение: ${json.message}`);
-                    kvtStateSet('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
+                    kvt.setState('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
                 }
 
                 // if (json.httpCode === 401) {
                 //     kvtd ?? console.log('[kvt][alor ws]', `Ошибка подключения. Сообщение: ${json.message}`);
-                //     kvtStateSet('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
+                //     kvt.setState('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
                 // }
 
                 if (json.data && json.guid) {
@@ -323,12 +421,12 @@ function alor_connect(resubscribe = false) {
             window.__alorws.onclose = (event) => {
                 if (event.wasClean) {
                     kvtd ?? console.log(`[kvt][alor ws][close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
-                    kvtStateSet('alor', 0, `Соединение прервано`)
+                    kvt.setState('alor', 0, `Соединение прервано`)
                 } else {
                     // например, сервер убил процесс или сеть недоступна
                     // обычно в этом случае event.code 1006
                     kvtd ?? console.log('[kvt][alor ws][close] Соединение прервано', event);
-                    kvtStateSet('alor', 0, `Соединение прервано`)
+                    kvt.setState('alor', 0, `Соединение прервано`)
 
                     setTimeout(function() {
                         kvtd ?? console.log('[kvt][alor ws] Пробуем переподписаться', event);
@@ -339,10 +437,10 @@ function alor_connect(resubscribe = false) {
 
             window.__alorws.onerror = (error) => {
                 kvtd ?? console.warn(`[kvt][alor ws][error] ${error.message}`);
-                kvtStateSet('alor', 0, `Ошибка сокета: ${error.message}`)
+                kvt.setState('alor', 0, `Ошибка сокета: ${error.message}`)
             };
         } else {
-            kvtStateSet('alor', 0, `${res.status} ${res.statusText}`, res.status)
+            kvt.setState('alor', 0, `${res.status} ${res.statusText}`, res.status)
         }
     })
 }
@@ -353,7 +451,7 @@ function kvt_connect(resubscribe = false) {
 
     window.__kvtWS.onopen = (e) => {
         kvtd ?? console.log("[kvt][kvts ws]", "Подключен к серверу kvts");
-        kvtStateSet('kvts', 2, `Подключен к серверу kvts`)
+        kvt.setState('kvts', 2, `Подключен к серверу kvts`)
 
         // Переподписка на Getdp
         if (window.__kvtGetdp && resubscribe) {
@@ -438,7 +536,7 @@ function kvt_connect(resubscribe = false) {
         }
 
         kvtd ?? console.log('[kvt][kvts ws][close]', msg);
-        kvtStateSet('kvts', 0, msg)
+        kvt.setState('kvts', 0, msg)
     };
 
     window.__kvtWS.onerror = (error) => {
@@ -451,7 +549,7 @@ function rcktMonConnect() {
 
     window.__RcktMonWS.onopen = (e) => {
         kvtd ?? console.log('[kvt][RcktMon ws]', 'connected to RcktMon');
-        kvtStateSet('rcktMon', 2, 'connected to RcktMon')
+        kvt.setState('rcktMon', 2, 'connected to RcktMon')
     };
 
     window.__RcktMonWS.onmessage = (message) => {
@@ -473,7 +571,7 @@ function rcktMonConnect() {
             }
         }
         kvtd ?? console.log('[kvt][RcktMon ws][close]', msg);
-        kvtStateSet('rcktMon', 0, msg)
+        kvt.setState('rcktMon', 0, msg)
     };
 
     window.__RcktMonWS.onerror = (error) => {
@@ -584,11 +682,28 @@ function createVel(ticker, groupId) {
  * Быстрые кнопки в деньгах
  * @param {*} widget 
  */
+// При загрузке контента виджета, добавим кнопки
+    /*
+    TODO: Задача, при загрузке виджета ЗАЯВКИ, добавлять/обновлять элементы KVT внутри него.
+    Элементы следующие:
+        - кнопки быстрого объёма в кол-ве: add_kvtFastVolumeSizeButtons(el)
+        - кнопки быстрого объёма в деньгах: add_kvtFastVolumePriceButtons(el)
+        - есть ли тикер в шорт:  add_IsShortTicker(el)
+
+    Проблемы:
+        - Если перключить на несуществующий тикер, отлетают быстрые кнопки
+        - Если цена меняется сильно часто, add_kvtFastVolumePriceButtons вызывается тоже, и функция выполняется.
+        - При загрузке, сначала тянется старая цена, потом подгружается новая. Функция add_kvtFastVolumePriceButtons вызывается 2 раза.
+
+    - При загрузке страницы, проходить по всем виджетам [data-widget-type="COMBINED_ORDER_WIDGET"] и добавлять кнопки.
+    - При смене тикера, менять add_kvtFastVolumePriceButtons кнопки.
+    - при смене цены больше чем на 0.5%, менять значения кнопок add_kvtFastVolumePriceButtons
+    */
 async function add_kvtFastVolumePriceButtons(widget, create = false) {
 
     if (widget && kvtSettings.kvtFastVolumePrice) {
 
-        await waitForElm('[class^="src-components-OrderHeader-styles-price-"]')
+        await kvt.waitForElm('[class^="src-components-OrderHeader-styles-price-"]')
 
         let widgetId = widget.getAttribute('data-widget-id'),
             ticker = widget.getAttribute('data-symbol-id'),
@@ -624,10 +739,10 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
                 // Если фьюч, узнаем его стоимость
                 if (price_block.endsWith('пт.')) {
                     if (!kvtSettings.brokerAccountId) {
-                        kvtSettings.brokerAccountId = await kvtGetBrokerAccounts()
+                        kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
                     }
 
-                    price = await getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+                    price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
                     kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${price}`)
                 }
 
@@ -645,7 +760,7 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
                     let vol = (i / price / lot_size).toFixed();
 
                     if (kvtSettings.kvtFastVolumePriceRound) {
-                        vol = customRound(vol)
+                        vol = kvt.customRound(vol)
                     }
 
                     if (!vols.includes(vol) && vol !== 0) {
@@ -722,13 +837,6 @@ function add_IsShortTicker (widget) {
     }
 }
 
-let reactGetEl = function (t) {
-    var e = Object.keys(t).find(function (t) {
-        return t.startsWith("__reactProps$")
-    });
-    return e ? t[e] : null
-}
-
 function set_kvtFastVolume(widget, vol) {
     let input = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]')
     input = input.nextSibling
@@ -736,7 +844,7 @@ function set_kvtFastVolume(widget, vol) {
 
     vol = vol.toString()
 
-    let i = reactGetEl(input)
+    let i = kvt.reactGetEl(input)
 
     i.onChange({
         target: {value: vol},
@@ -761,9 +869,6 @@ function set_kvtFastSum (widget, sum) {
     }
 }
 
-function customRound(val, n = 100) {
-    return Math.round(val / n) * n;
-}
 
 function kvtWidgetsLoad() {
     let kvtWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
@@ -927,8 +1032,9 @@ async function subscribe_TS(widgetId, ticker, guid = '') {
 
     kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
 
-    let symbolDetail = await getSymbolDetail(widgetId)
-    console.log('symbolDetail', symbolDetail)
+    let symbolDetail = await kvt.getSymbolDetail(widgetId)
+    console.log('symbolDetail', symbolDetail) // DEL
+    kvtTickers[symbolDetail.ticker] = symbolDetail
 
     if (window.__kvtWS && window.__kvtWS.readyState === 1) {
         window.__kvtWS.send(JSON.stringify({
@@ -936,7 +1042,7 @@ async function subscribe_TS(widgetId, ticker, guid = '') {
             type: 'subscribeTS',
             ticker: ticker,
             guid: obj.guid,
-            exchange: symbolDetail.exchange
+            exchange: symbolDetail.exchange //DEL: Похрен на биржу, возвращает ответ долго
         }));
     }
 }
@@ -963,15 +1069,6 @@ function unsubscribe_TS(widgetId) {
     }
 }
 
-function kvtStateSet(name, state, msg, httpCode) {
-    kvtStates[name] = {state: state, msg: msg, httpCode: httpCode}
-
-    let st = document.querySelector(`[data-kvt-state-name=${name}]`)
-    if (st) {
-        st.setAttribute("data-kvt-state-value", state)
-        st.setAttribute("title", `${name} - ${msg}`)
-    }
-}
 
 function subscribe_getdp(widgetId, ticker, guid) {
     !window.__kvtGetdp ? window.__kvtGetdp = [] : 0
@@ -1027,52 +1124,3 @@ function getKvtTsByGuid(guid) {
     return window.__kvtTs ? window.__kvtTs.find(item => item.guid === guid) : 0
 }
 
-function getSymbolDetail(widgetId) {
-    let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="packages-core-lib-components-WidgetBody-WidgetBody-search-"] > span > span`);
-    if (el) {
-        let reactObjectName = Object.keys(el).find(function (key) {
-            return key.startsWith("__reactFiber$")
-        });
-        
-        return el[reactObjectName].memoizedProps.children._owner.memoizedProps.selected
-    }
-}
-
-/**
- * Get used brokerAccountId
- * @returns 
- */
-async function kvtGetBrokerAccounts () {
-    return await fetch(`https://api-invest.tinkoff.ru/trading/user/broker_accounts?appName=invest_terminal&appVersion=&sessionId=${kvtSettings.psid}`, {
-        method: "POST",
-    }).then(function (e) {
-        return e.json();
-    }).then(function (e) {
-        return ((e.payload || {} ).accounts || [])[0].brokerAccountId
-    }).catch(err => {
-        console.error(`[kvt] getBrokerAccounts ERR ${err}`)
-        return null
-    })
-}
-
-/**
- * 
- * @param {string} ticker 
- * @param {number} price 
- * @param {number} brokerAccountId 
- * @param {number} quantity 
- * @returns 
- */
-async function getFullPriceLimit (ticker, price, brokerAccountId, quantity = 1) {
-    return await fetch(`https://api-invest.tinkoff.ru/trading/order/full_price_limit?appName=invest_terminal&appVersion=2.0.0&sessionId=${kvtSettings.psid}`, {
-        method: "POST",
-        body: JSON.stringify({"quantity":quantity, "price":price, "operationType":"Buy", "brokerAccountId": brokerAccountId, "ticker": ticker})
-    }).then(function (e) {
-        return e.json();
-    }).then(function (e) {
-        return (((e.payload || {} ).fullAmount || {}).value || null)
-    }).catch(err => {
-        console.error(`[kvt] getFullPriceLimit ERR ${err}`)
-        return null
-    })
-}
