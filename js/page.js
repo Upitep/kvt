@@ -4,11 +4,9 @@ let kvtd = false,
     kvth,
     kvtSettings,
     kvtStates = {
-        alor: {}, //DEL
         kvts: {},
         rcktMon: {}
     },
-    kvtTimeouts = {},
     kvtPrices = {},
     kvtGroups = {
         1: "rgb(255, 212, 80)",
@@ -38,7 +36,7 @@ let kvtd = false,
                 let line = document.createElement('tr');
                 line.classList.add(`type-${jd.side}`);
                 line.setAttribute("data-ts-id", jd.id);
-                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * kvtTickers[jd.symbol].lotSize)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
+                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize/* kvtTickers[jd.symbol].lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
 
                 return line;
             },
@@ -71,6 +69,105 @@ class KvaloodTools {
 
     }
 
+    /**
+     * Загружаем виджеты из localStorage
+     */
+    widgetsLoad() {
+        let widgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
+    
+        if (Object.keys(widgets).length) {
+            setTimeout(function() {
+                kvtd ?? console.log('[kvt][widgetsLoad] БД Есть виджеты')
+                Object.keys(widgets).forEach(i => {
+                    let widget = document.querySelector('[data-widget-id=' + i + ']')
+    
+                    if (widget) {
+                        kvtd ?? console.log('[kvt][widgetsLoad] Виджет есть', i, widget)
+                        kvtCreateWidget(widget)
+                    } else {
+                        // kvtd ?? console.log('[kvt][widgetsLoad] Виджета НЕТ, но он в БД', i, widget)
+                        // delete kvtWidgets[i]
+                    }
+                })
+    
+                //localStorage.setItem("_kvt-widgets", JSON.stringify(kvtWidgets))
+            }, 1)
+        } else {
+            kvtd ?? console.log('[kvt][widgetsLoad]', 'Виджетов нет')
+        }
+    }
+
+    /**
+     * Установим тикер в группу
+     * @param {*} ticker 
+     * @param {*} group_id 
+     * @param {*} type 
+     * @returns 
+     */
+    setTickerInGroup(ticker, group_id, type) {
+        let widget = getGroupWidget(group_id);
+    
+        if (!widget) {
+            kvtd ?? console.error('[kvt][setTickerInGroup]', 'Виджет не найден')
+            return null;
+        }
+        let reactObjectName = Object.keys(widget).find(function (key) {
+            return key.startsWith("__reactFiber$")
+        });
+    
+        let target = widget[reactObjectName].memoizedProps.children.find(function (child) {
+            return typeof child === 'object' && child !== null
+        })
+    
+        target && target._owner.memoizedProps.selectSymbol(ticker)
+    
+        if (type && kvtSettings[type]) {
+            this.setFastSum(widget, kvtSettings[type])
+        }
+    }
+
+    /**
+     * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
+     */
+    setFastSum (widget, sum) {
+        let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
+    
+        /* if (!this.timeouts[timeoutName]) {
+            this.timeouts[timeoutName] = setTimeout(function(){ */
+                // TODO: Найти более адекватный источник данных (мб запрос ttps://api-invest.tinkoff.ru/trading/stocks/get?ticker=*)
+                let price = parseFloat(widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML.replace(/\s+/g, '').replace(/[,]+/g, '.'));
+
+                this.setFastVolume(widget, (sum / price).toFixed());
+    /* 
+                this.timeouts[timeoutName] = null
+    
+            }, 500);
+        } */
+    }
+
+    /**
+     * Установка быстрого объёма в шт. в окне заявки
+     * @param {*} widget 
+     * @param {*} vol 
+     */
+    setFastVolume(widget, vol) {
+        let input = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]')
+        input = input.nextSibling
+        input = input.querySelector('input')
+    
+        vol = vol.toString()
+    
+        let i = kvt.reactGetEl(input)
+    
+        i.onChange({
+            target: {value: vol},
+            currentTarget: {value: vol}
+        })
+    }
+
+    /**
+     * Ждём появления html элемента
+     */
     waitForElm(selector) {
         return new Promise(resolve => {
             if (document.querySelector(selector)) {
@@ -174,6 +271,22 @@ class KvaloodTools {
         })
     }
 
+    /**
+     * Информация о тикере через API ти
+     * @param {*} ticker 
+     * @returns 
+     */
+    async symbolDetail (ticker) {
+        return await fetch(`https://api-invest.tinkoff.ru/trading/stocks/get?ticker=${ticker}&appName=invest_terminal&appVersion=2.0.0&sessionId=${kvtSettings.psid}`).then(function (e) {
+            return e.json();
+        }).then(function (e) {
+            return e.payload || {}
+        }).catch(err => {
+            console.error(`[kvt] getFullPriceLimit ERR ${err}`)
+            return null
+        })
+    }
+
 }
 
 const kvt = new KvaloodTools();
@@ -193,22 +306,9 @@ let kvtInject_TIMER = setInterval(() => {
         // Подключаемся к сервисам
         if (kvtSettings.telegramId && kvtSettings.kvtToken) {
             kvt_connect()
-        
-            if (kvtSettings.alorToken) {
-                if (kvtSettings.alorTS) { // DEL alorTS
-                    alor_connect()
-                } else {
-                    kvtd ?? console.log('[kvt][alor]', 'Нет необходимости подключаться');
-                    kvt.setState('alor', 3, `Нет необходимости подключаться`)
-                }                
-            } else {
-                kvtd ?? console.log('[kvt][alor]', 'Токена нет');
-                kvt.setState('alor', 0, `Токена нет`)
-            }
         } else {
             kvtd ?? console.warn('[kvt]', 'telegramId и/или kvt токен не установлен')
             kvt.setState('kvts', 0, `telegramId и/или kvt токен не установлен`)
-            kvt.setState('alor', 0, `telegramId и/или kvt токен не установлен`)
         }
 
         // Подключение к rcktMon
@@ -230,8 +330,6 @@ let kvtInject_TIMER = setInterval(() => {
             }
         }, 100);
 
-    } else {
-        // Загрузка не удалась.
     }
 }, 100);
 
@@ -293,7 +391,6 @@ function kvtRun() {
                     let el = mutation.target.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')
                     if (el && !el.classList.contains('kvt-widget-load')) {
                         el.classList.add('kvt-widget-load')
-                        console.warn('1 add_kvtFastVolumePriceButtons') //DEL
                         add_kvtFastVolumeSizeButtons(el)
                         add_kvtFastVolumePriceButtons(el, true)
                         add_IsShortTicker(el)
@@ -304,7 +401,6 @@ function kvtRun() {
 
                     // Добавим быстрый объем в $. следим за input цены справа вверху в виджете заявки
                     if (mutation.target.parentElement && mutation.target.parentElement.matches('[class*="src-containers-Animated-styles-clickable-"]')) {
-                        console.warn('3 add_kvtFastVolumePriceButtons') // DEL
                         add_kvtFastVolumePriceButtons(mutation.target.parentElement.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]'));
                     }
                 }
@@ -317,14 +413,13 @@ function kvtRun() {
         characterData: true
     })
 
-    kvtWidgetsLoad()
+    kvt.widgetsLoad()
 
     // при загрузке страницы работаем с виджетами заявки
     let widgets = document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]')
     if (widgets.length) {
         widgets.forEach(function (widget) {
             widget.classList.add('kvt-widget-load')
-            console.warn('2 add_kvtFastVolumePriceButtons') // DEL
             add_kvtFastVolumeSizeButtons(widget)
             add_kvtFastVolumePriceButtons(widget)
             add_IsShortTicker(widget)
@@ -372,79 +467,6 @@ function kvtRun() {
     })    
 }
 
-
-function alor_connect(resubscribe = false) {
-    kvtSyncAlorAccessToken().then(res => {
-
-        if (res.AccessToken) {
-            window.__alorws = new WebSocket('wss://api.alor.ru/ws');
-
-            window.__alorws.onopen = (e) => {
-                if (window.__kvtTs && resubscribe) {
-                    for (let item of window.__kvtTs) {
-                        kvtd ?? console.warn('subscribe_TS_1')
-                        subscribe_TS(item.widgetId, item.ticker, item.guid)
-                    }
-                }
-            };
-
-            window.__alorws.onmessage = (message) => {
-                let json = JSON.parse(message.data)
-
-                kvtd ?? console.log('[kvt][alor ws]', json)
-                
-                if (json.httpCode === 200) {
-                    kvtd ?? console.log('[kvt][alor ws]', 'Подключен к вебсокету Alor'); // FIXME: надо что-то с этим сделать. Будет постоянно лезть при подписке.
-                    kvt.setState('alor', 2, `Подключен к вебсокету Alor`, 200)
-                }
-
-                if (json.httpCode === 400) {
-                    kvtd ?? console.log('[kvt][alor ws]', `Ошибка подключения. Сообщение: ${json.message}`);
-                    kvt.setState('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
-                }
-
-                // if (json.httpCode === 401) {
-                //     kvtd ?? console.log('[kvt][alor ws]', `Ошибка подключения. Сообщение: ${json.message}`);
-                //     kvt.setState('alor', 1, `Ошибка подключения. Сообщение: ${json.message}`, json.httpCode)
-                // }
-
-                if (json.data && json.guid) {
-                    let obj = getKvtTsByGuid(json.guid),
-                        jd = json.data
-
-                    if (obj) {
-                        insetItemsContent(obj.widgetId, [jd])
-                    }
-                }
-            }
-
-            window.__alorws.onclose = (event) => {
-                if (event.wasClean) {
-                    kvtd ?? console.log(`[kvt][alor ws][close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
-                    kvt.setState('alor', 0, `Соединение прервано`)
-                } else {
-                    // например, сервер убил процесс или сеть недоступна
-                    // обычно в этом случае event.code 1006
-                    kvtd ?? console.log('[kvt][alor ws][close] Соединение прервано', event);
-                    kvt.setState('alor', 0, `Соединение прервано`)
-
-                    setTimeout(function() {
-                        kvtd ?? console.log('[kvt][alor ws] Пробуем переподписаться', event);
-                        alor_connect(true);
-                    }, 5000);
-                }
-            };
-
-            window.__alorws.onerror = (error) => {
-                kvtd ?? console.warn(`[kvt][alor ws][error] ${error.message}`);
-                kvt.setState('alor', 0, `Ошибка сокета: ${error.message}`)
-            };
-        } else {
-            kvt.setState('alor', 0, `${res.status} ${res.statusText}`, res.status)
-        }
-    })
-}
-
 function kvt_connect(resubscribe = false) {
     window.__kvtWS = new WebSocket(`wss://kvalood.ru?id=${kvtSettings.telegramId}&token=${kvtSettings.kvtToken}&ver=${kvtSettings.extensionVer}`);
     //window.__kvtWS = new WebSocket(`ws://localhost:28972?id=${kvtSettings.telegramId}&token=${kvtSettings.kvtToken}&ver=${kvtSettings.extensionVer}`);
@@ -474,7 +496,7 @@ function kvt_connect(resubscribe = false) {
 
             switch (msg.type) {
                 case 'setTicker':
-                    setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumBot') // TODO: Wtf?
+                    kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumBot') // TODO: Wtf?
                     break
 
                 case 'getLastTrades': {
@@ -555,7 +577,7 @@ function rcktMonConnect() {
     window.__RcktMonWS.onmessage = (message) => {
         const msg = JSON.parse(message.data);
         kvtd ?? console.log('[kvt][RcktMon ws][Message]', msg);
-        setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumRcktMon');
+        kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumRcktMon');
     }
 
     window.__RcktMonWS.onclose = (event) => {
@@ -580,27 +602,7 @@ function rcktMonConnect() {
 }
 
 
-function setTickerInGroup(ticker, group_id, type) {
-    let widget = getGroupWidget(group_id);
 
-    if (!widget) {
-        kvtd ?? console.error('[kvt][setTickerInGroup]', 'Виджет не найден')
-        return null;
-    }
-    let reactObjectName = Object.keys(widget).find(function (key) {
-        return key.startsWith("__reactFiber$")
-    });
-
-    let target = widget[reactObjectName].memoizedProps.children.find(function (child) {
-        return typeof child === 'object' && child !== null
-    })
-
-    target && target._owner.memoizedProps.selectSymbol(ticker)
-
-    if (type && kvtSettings[type]) {
-        set_kvtFastSum(widget, kvtSettings[type])
-    }
-}
 
 function getGroupWidget(group_id){
     let orderWidgetObject;
@@ -672,7 +674,7 @@ function createVel(ticker, groupId) {
     vel.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="currentColor"></circle></svg>';
 
     vel.onclick = e => {
-        setTickerInGroup(ticker, groupId)
+        kvt.setTickerInGroup(ticker, groupId)
     }
 
     return vel;
@@ -682,23 +684,6 @@ function createVel(ticker, groupId) {
  * Быстрые кнопки в деньгах
  * @param {*} widget 
  */
-// При загрузке контента виджета, добавим кнопки
-    /*
-    TODO: Задача, при загрузке виджета ЗАЯВКИ, добавлять/обновлять элементы KVT внутри него.
-    Элементы следующие:
-        - кнопки быстрого объёма в кол-ве: add_kvtFastVolumeSizeButtons(el)
-        - кнопки быстрого объёма в деньгах: add_kvtFastVolumePriceButtons(el)
-        - есть ли тикер в шорт:  add_IsShortTicker(el)
-
-    Проблемы:
-        - Если перключить на несуществующий тикер, отлетают быстрые кнопки
-        - Если цена меняется сильно часто, add_kvtFastVolumePriceButtons вызывается тоже, и функция выполняется.
-        - При загрузке, сначала тянется старая цена, потом подгружается новая. Функция add_kvtFastVolumePriceButtons вызывается 2 раза.
-
-    - При загрузке страницы, проходить по всем виджетам [data-widget-type="COMBINED_ORDER_WIDGET"] и добавлять кнопки.
-    - При смене тикера, менять add_kvtFastVolumePriceButtons кнопки.
-    - при смене цены больше чем на 0.5%, менять значения кнопок add_kvtFastVolumePriceButtons
-    */
 async function add_kvtFastVolumePriceButtons(widget, create = false) {
 
     if (widget && kvtSettings.kvtFastVolumePrice) {
@@ -773,7 +758,7 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
 
                         insertBlock.insertAdjacentElement('beforeend', vel)
                         vel.onclick = e => {
-                            set_kvtFastVolume(widget, vol)
+                            kvt.setFastVolume(widget, vol)
                         }
                     }
                 }
@@ -803,7 +788,7 @@ function add_kvtFastVolumeSizeButtons(widget) {
 
                 insertBlock.insertAdjacentElement('beforeend', vel)
                 vel.onclick = e => {
-                    set_kvtFastVolume(widget, vol)
+                    kvt.setFastVolume(widget, vol)
                 }
             }
         }, 1)
@@ -834,64 +819,6 @@ function add_IsShortTicker (widget) {
                 if (block) block.remove()
             }
         }, 1)
-    }
-}
-
-function set_kvtFastVolume(widget, vol) {
-    let input = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]')
-    input = input.nextSibling
-    input = input.querySelector('input')
-
-    vol = vol.toString()
-
-    let i = kvt.reactGetEl(input)
-
-    i.onChange({
-        target: {value: vol},
-        currentTarget: {value: vol}
-    })
-}
-
-function set_kvtFastSum (widget, sum) {
-
-    let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
-
-    if (!kvtTimeouts[timeoutName]) {
-        kvtTimeouts[timeoutName] = setTimeout(function(){
-            // TODO: Найти более адекватный источник данных (мб запрос ttps://api-invest.tinkoff.ru/trading/stocks/get?ticker=*)
-            let price = parseFloat(widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML.replace(/\s+/g, '').replace(/[,]+/g, '.'))
-
-            set_kvtFastVolume(widget, (sum / price).toFixed())
-
-            kvtTimeouts[timeoutName] = null
-
-        }, 500);
-    }
-}
-
-
-function kvtWidgetsLoad() {
-    let kvtWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
-
-    if (Object.keys(kvtWidgets).length) {
-        setTimeout(function() {
-            kvtd ?? console.log('[kvt][kvtWidgetsLoad] БД Есть виджеты')
-            Object.keys(kvtWidgets).forEach(i => {
-                let widget = document.querySelector('[data-widget-id=' + i + ']')
-
-                if (widget) {
-                    kvtd ?? console.log('[kvt][kvtWidgetsLoad] Виджет есть', i, widget)
-                    kvtCreateWidget(widget)
-                } else {
-                    kvtd ?? console.log('[kvt][kvtWidgetsLoad] Виджета НЕТ, но он в БД', i, widget)
-                    //delete kvtWidgets[i]
-                }
-            })
-
-            //localStorage.setItem("_kvt-widgets", JSON.stringify(kvtWidgets))
-        }, 1)
-    } else {
-        kvtd ?? console.log('[kvt][kvtWidgetsLoad]', 'Виджетов нет')
     }
 }
 
@@ -1031,18 +958,21 @@ async function subscribe_TS(widgetId, ticker, guid = '') {
     window.__kvtTs.push(obj)
 
     kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
-
-    let symbolDetail = await kvt.getSymbolDetail(widgetId)
-    console.log('symbolDetail', symbolDetail) // DEL
-    kvtTickers[symbolDetail.ticker] = symbolDetail
+    
+    /* if (!kvtTickers[ticker]) {
+        let symbolDetail2 = await kvt.symbolDetail(ticker)
+        
+        kvtTickers[symbolDetail2.symbol.ticker] = symbolDetail2.symbol
+    } */
 
     if (window.__kvtWS && window.__kvtWS.readyState === 1) {
         window.__kvtWS.send(JSON.stringify({
             user_id: kvtSettings.telegramId,
             type: 'subscribeTS',
             ticker: ticker,
-            guid: obj.guid,
-            exchange: symbolDetail.exchange //DEL: Похрен на биржу, возвращает ответ долго
+            guid: obj.guid
+            //,
+            //exchange: kvtTickers[ticker].exchange //DEL: Похрен на биржу, возвращает ответ долго
         }));
     }
 }

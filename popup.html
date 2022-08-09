@@ -129,7 +129,7 @@
 			<div class="form-group">
 				<label for="kvtFastVolumePrice" class="form-label">Кнопки быстрого объема в деньгах ($/₽)</label>
 				<input type="text" name="kvtFastVolumePrice" id="kvtFastVolumePrice" class="form-control" placeholder="100000,50000,25000,10000,5000">
-				<div class="form-text">Быстрое заполнение объема в $, в виджете заявки. <b>Указывать через запятую</b>, например "100000,50000"</div>
+				<div class="form-text">Быстрое заполнение объема в деньгах, в виджете заявки. <b>Указывать через запятую</b>, например "100000,50000"</div>
 			</div>
 			
 			<div class="form-group">
@@ -150,24 +150,19 @@
 			
 			<hr/>
 
-			<div class="form-group">
-				<label for="alorToken" class="form-label">Алор токен</label>
-				<input type="text" name="alorToken" id="alorToken" class="form-control">
-				<div class="form-text">Для работы ленты принтов. Токен получать тут - <b>https://alor.dev/open-api-tokens</b></div>
-			</div>
+			<h3>💰 Фин. рез. Алор</h3>
 
-			<div class="form-group">
-				<div class="form-check">
-					<input type="checkbox" name="alorTS" id="alorTS" class="form-check-input">
-					<label for="alorTS">Лента принтов СПБ биржи через алор (T&S SPBX)</label>
+			<div class="form-group row g-2">				
+				<div class="col-6">
+					<label for="alorToken" class="form-label">Алор токен</label>
+					<input type="text" name="alorToken" id="alorToken" class="form-control">
+					<div class="form-text">Токен получать тут - <b>https://alor.dev/open-api-tokens</b></div>
 				</div>
-				<div class="form-text">Данные будут идти от alor.ru, вместо kvts</div>
-			</div>
-			
-			<div class="form-group">
-				<label for="alorPortfolio" class="form-label">Алор портфель</label>
-				<input type="text" name="alorPortfolio" id="alorPortfolio" class="form-control" placeholder="Портфель фондового рынка (DXXXXX)">
-				<div class="form-text">Для статистики, при торговле через Алор</div>
+				<div class="col-6">
+					<label for="alorPortfolio" class="form-label">Алор портфель</label>
+					<input type="text" name="alorPortfolio" id="alorPortfolio" class="form-control" placeholder="Портфель фондового рынка (DXXXXX)">
+					<div class="form-text">Необходим для выгрузки истории сделок</div>
+				</div>
 			</div>
 			
 			<hr/>
