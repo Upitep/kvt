@@ -8,6 +8,7 @@ let kvtd = false,
         rcktMon: {}
     },
     kvtPrices = {},
+    kvtTickerInfo = {},
     kvtGroups = {
         1: "rgb(255, 212, 80)",
         2: "rgb(255, 123, 118)",
@@ -217,6 +218,32 @@ class KvaloodTools {
     }
 
     /**
+     * Запрос на информацию о тикере (у каких брокеров шорты итд.)
+     * @param {*} widget 
+     */
+    getTickerInfo(widget) {
+        kvtd ?? console.log('[kvt][getTickerInfo]', widget, widget.getAttribute("data-symbol-id"))
+    
+        setTimeout(function() {
+            let widgetId = widget.getAttribute('data-widget-id')
+    
+            kvtTickerInfo[widgetId] = kvth.uuidv4();
+
+            if (window.__kvtWS && window.__kvtWS.readyState === 1) {
+                window.__kvtWS.send(JSON.stringify({
+                    user_id: kvtSettings.telegramId,
+                    type: 'tickerInfo',
+                    symbol: widget.getAttribute("data-symbol-id"),
+                    guid: kvtTickerInfo[widgetId] 
+                }));
+    
+                let block = widget.querySelector('.kvt-shortsBrokers')
+                if (block) block.remove()
+            }
+        }, 1)
+    }
+
+    /**
      * Информация о тикере спрятанная в react
      * @param {*} widgetId 
      * @returns 
@@ -393,7 +420,7 @@ function kvtRun() {
                         el.classList.add('kvt-widget-load')
                         add_kvtFastVolumeSizeButtons(el)
                         add_kvtFastVolumePriceButtons(el, true)
-                        add_IsShortTicker(el)
+                        kvt.getTickerInfo(el)
                     }
                 }
 
@@ -422,7 +449,7 @@ function kvtRun() {
             widget.classList.add('kvt-widget-load')
             add_kvtFastVolumeSizeButtons(widget)
             add_kvtFastVolumePriceButtons(widget)
-            add_IsShortTicker(widget)
+            kvt.getTickerInfo(widget)
         })
     }
 
@@ -434,7 +461,7 @@ function kvtRun() {
                     let prevSymbol = mutation.oldValue
 
                     if (prevSymbol !== symbol) {
-                        add_IsShortTicker(mutation.target)
+                        kvt.getTickerInfo(mutation.target)
                     }
                 }
 
@@ -508,25 +535,36 @@ function kvt_connect(resubscribe = false) {
                     break;
                 }
 
-                case 'IsShortTicker': {
-                    let widgetId = Object.keys(window.__kvtIsShortTickers).find(key => window.__kvtIsShortTickers[key] === msg.guid),
+                case 'tickerInfo': {
+                    let widgetId = Object.keys(kvtTickerInfo).find(key => kvtTickerInfo[key] === msg.guid),
                         widget = document.querySelector('[data-widget-id="'+ widgetId +'"]')
 
                     if (widget && msg.data) {
-                        let block = widget.querySelector('.kvt-IsShortTicker span'),
-                            arr = Object.keys(msg.data).filter((i) => msg.data[i] === true),
-                            blockVal = arr.length > 0 ? arr.join(", ") : '—';
+                        if (msg.data.shortsBrokers) {
+                            let block = widget.querySelector('.kvt-shortsBrokers span'),                                
+                                blockVal = msg.data.shortsBrokers.length > 0 ? msg.data.shortsBrokers.join(", ") : '—';
 
-                        if (block) {
-                            block.innerHTML = blockVal;
-                        } else {
-                            let OrderBody = widget.querySelector('[class*="OrderBody-OrderBody-scrollContainer-"]');
-                            OrderBody.insertAdjacentHTML("beforeend", '<div class="kvt-IsShortTicker">🩳 <span>' + blockVal +'</span></div>')
+                            if (block) {
+                                block.innerHTML = blockVal;
+                            } else {
+                                let OrderBody = widget.querySelector('[class*="OrderBody-OrderBody-scrollContainer-"]');
+                                OrderBody.insertAdjacentHTML("beforeend", '<div class="kvt-shortsBrokers">🩳 <span>' + blockVal +'</span></div>')
+                            }
                         }
-                    }
 
-                    if (msg.tickerDetails.smallCap) {
-                        widget.querySelector('[class^=src-components-TickerInfo-TickerInfo-firstColumn-]').insertAdjacentHTML('afterbegin', msg.tickerDetails.smallCap ? '<span title="Компания малой капитализации с повышенной комиссией СПБ биржи">⚠️</span>' : '')
+                        let titleBlock = widget.querySelector('[class^=src-components-TickerInfo-TickerInfo-firstColumn-]');
+
+                        if (msg.data.smallCap) {
+                            !titleBlock.querySelector('.smallCap') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="smallCap" title="Компания малой капитализации с повышенной комиссией СПБ биржи">⚠️</span>') : '';                          
+                        }
+
+                        if (msg.data.noSync) {
+                            !titleBlock.querySelector('.noSync') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="noSync" title="Акция без синхронизации с США">⛔️</span>') : '';                          
+                        }
+
+                        if (msg.data.blockQ) {
+                            !titleBlock.querySelector('.blockQ') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="blockQ" title="Нельзя сдать в Q, поломана синхронизация с США">🆘</span>') : '';                          
+                        }
                     }
 
                     break;
@@ -795,33 +833,6 @@ function add_kvtFastVolumeSizeButtons(widget) {
     }
 }
 
-function add_IsShortTicker (widget) {
-    if (kvtSettings.IsShortTicker) {
-
-        kvtd ?? console.log('[kvt][IsShortTicker]', widget, widget.getAttribute("data-symbol-id"))
-
-        setTimeout(function() {
-            let widgetId = widget.getAttribute('data-widget-id')
-
-            !window.__kvtIsShortTickers ? window.__kvtIsShortTickers = [] : 0
-
-            window.__kvtIsShortTickers[widgetId] = kvth.uuidv4()
-
-            if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-                window.__kvtWS.send(JSON.stringify({
-                    user_id: kvtSettings.telegramId,
-                    type: 'IsShortTicker',
-                    symbol: widget.getAttribute("data-symbol-id"),
-                    guid: window.__kvtIsShortTickers[widgetId]
-                }));
-
-                let block = widget.querySelector('.kvt-IsShortTicker')
-                if (block) block.remove()
-            }
-        }, 1)
-    }
-}
-
 function kvtCreateWidget(widget) {
     if (widget && !widget.getAttribute('data-kvt-widget-load')) {
         let kvtWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}"),
@@ -959,7 +970,9 @@ async function subscribe_TS(widgetId, ticker, guid = '') {
 
     kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
     
-    /* if (!kvtTickers[ticker]) {
+    /* 
+    // TODO: Запрос лотности может понадобиться там где создаем кнопки в деньгах
+    if (!kvtTickers[ticker]) {
         let symbolDetail2 = await kvt.symbolDetail(ticker)
         
         kvtTickers[symbolDetail2.symbol.ticker] = symbolDetail2.symbol

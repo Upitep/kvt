@@ -414,7 +414,7 @@ span[data-kvt-volume]:hover {
 /**
  * Бумага доступнна в шорт у брокеров
  */
-.kvt-IsShortTicker{
+.kvt-shortsBrokers{
     z-index: 1;
     display: flex;
     gap: 5px;
