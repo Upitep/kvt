@@ -540,7 +540,7 @@ function kvt_connect(resubscribe = false) {
                         widget = document.querySelector('[data-widget-id="'+ widgetId +'"]')
 
                     if (widget && msg.data) {
-                        if (msg.data.shortsBrokers) {
+                        if (msg.data.shortsBrokers && !kvtSettings.hideShortsBrokers) {
                             let block = widget.querySelector('.kvt-shortsBrokers span'),                                
                                 blockVal = msg.data.shortsBrokers.length > 0 ? msg.data.shortsBrokers.join(", ") : '—';
 
