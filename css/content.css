@@ -343,6 +343,11 @@ span[data-kvt-volume]:hover {
     height: 20px !important;
 }
 
+.kvt-compactStyle [class*=src-components-Logo-Logo-overlayIcon-] svg {
+    width: 12px;
+    height: 12px;
+}
+
 /**
  * История операций
  */
