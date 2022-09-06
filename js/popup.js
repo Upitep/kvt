@@ -39,7 +39,7 @@ const sendMessagePromise = async function (tabId, tp) {
             if (response && response.msg === tp) {
                 resolve(response)
             } else {
-                reject('Не удалось загрузить config psid. Обновите страницу терминала.')
+                reject('Не удалось загрузить config psid. Зайдите на страницу терминала или обновите её.')
             }
         });
     });
