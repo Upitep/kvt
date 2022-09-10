@@ -52,9 +52,14 @@
 		</div>
 		
 		<!-- принты -->
-		<div id="prints" class="b-tab">
+		<div id="prints" class="b-tab">		
+			<p class="mt-0 mb-2">Загрузка истории сделок (t&s) за сегодняшний торговый день через API Alor брокера</p>	
 			<div class="form-group">
 				<input type="text" id="printTicker" class="form-control" placeholder="введите тикер СПБ" style="width: 90px;">
+				<select id="printExchange" class="form-control" style="width: 70px;">
+					<option value="SPBX" selected>SPBX</option>
+					<option value="MOEX">MOEX</option>
+				</select>
 				<button id="kvLoadPrintsTicker" class="btn">Загрузить все сделки по тикеру</button>
 			</div>
 			

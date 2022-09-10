@@ -681,19 +681,18 @@ function getMonday() {
 
 function loadPrintsTicker() {
     let printsWindow = document.getElementById('printsWindow'),
-        printTicker = document.getElementById('printTicker').value;
+        printTicker = document.getElementById('printTicker').value,
+        printExchange = document.getElementById('printExchange').value;
 
     if (printTicker) {
         printsWindow.innerHTML  = 'Загрузка...';
 
-        const loadAlltrades = async () => {
-            await kvtSyncAlorAccessToken();
-            if(kvtAlorJWT) {
-                return await kvtGetAlltradesByTicker(printTicker.toUpperCase())
-            }
-        }
+        kvtGetAlltradesByTicker(printTicker.toUpperCase(), printExchange).then(r => {
 
-        loadAlltrades().then(r => {
+            if (r.result === 'error') {
+                throw r
+            }
+
             if(r && r.length) {
                 r.reverse();
 
@@ -721,16 +720,17 @@ function loadPrintsTicker() {
             }
         }).catch(err => {
             let error;
-            console.log(typeof err.status)
+            console.log('err', err)
             switch (err.status) {
-                case 404: error = err.statusText + ', такого тикера нет'; break;
+                case 401: error = err.statusText + ', проверьте актуальность токена в настройках'; break;
                 case 403: error = err.statusText + ', проверьте токен в настройках'; break;
+                case 404: error = err.statusText + ', такого тикера нет'; break;                
                 default: error = err.status + ' ' + err.statusText;
             }
             printsWindow.innerHTML = kvth._errW(error);
         })
     } else {
-        printsWindow.innerHTML  = 'укажите тикер';
+        printsWindow.innerHTML  = kvth._errW('укажите тикер');
     }
 }
 

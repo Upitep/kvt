@@ -16,8 +16,10 @@ async function kvtSyncAlorAccessToken() {
     })
 }
 
-async function kvtGetAlltradesByTicker(ticker) {
-    return await fetch('https://api.alor.ru/md/v2/Securities/SPBX/' + ticker + '/alltrades', {
+async function kvtGetAlltradesByTicker(ticker, exchange = 'SPBX') {    
+    await kvtSyncAlorAccessToken()    
+
+    return await fetch(`https://api.alor.ru/md/v2/Securities/${exchange}/${ticker}/alltrades`, {
         headers: {
             'Authorization': 'Bearer ' + kvtAlorJWT
         }
@@ -27,6 +29,8 @@ async function kvtGetAlltradesByTicker(ticker) {
         } else {
             throw e
         }
+    }).catch(err => {
+        return {result: 'error', status: err.status, statusText: err.statusText};
     });
 }
 

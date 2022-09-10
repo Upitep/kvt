@@ -64,7 +64,6 @@ async function run() {
     //}, 3000);
 
     injectScript(chrome.runtime.getURL("js/helpers.js?t=" + Date.now()), "body")
-    injectScript(chrome.runtime.getURL("js/alor.js?t=" + Date.now()), "body")
     injectScript(chrome.runtime.getURL("js/page.js?t=" + Date.now()), "body")
 }
 

@@ -248,9 +248,8 @@ label {
     color: #b2b2b2;
 }
 .note-error{
-    padding: 4px 8px;
-    color: #ffffff;
-    background: red;
+    color: #ff433d;
+    font-weight: bold;
 }
 
 th[role=columnheader]:not(.no-sort) {
@@ -493,4 +492,29 @@ span.red{
 .g-5,
 .gy-5 {
     --bs-gutter-y: 3rem;
+}
+
+.mt-0 {
+    margin-top: 0 !important;
+}
+
+.mt-1 {
+    margin-top: 0.25rem !important;
+}
+
+.mt-2 {
+    margin-top: 0.5rem !important;
+}
+
+
+.mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.mb-1 {
+    margin-bottom: 0.25rem !important;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem !important;
 }
