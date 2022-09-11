@@ -33,11 +33,14 @@ let kvtd = false,
             name: 'T&S',
             icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 15C11.866 15 15 11.866 15 8C15 4.134 11.866 1 8 1C4.134 1 1 4.134 1 8C1 11.866 4.134 15 8 15ZM10.6745 9.62376L8.99803 8.43701L8.9829 4.5097C8.98078 3.95742 8.53134 3.51143 7.97906 3.51356C7.42678 3.51568 6.98079 3.96512 6.98292 4.5174L7.00019 9.00001C7.00152 9.34537 7.18096 9.66281 7.47482 9.84425L9.62376 11.3255C10.0937 11.6157 10.7099 11.4699 11 11C11.2901 10.5301 11.1444 9.91391 10.6745 9.62376Z" fill="rgb(var(--pro-icon-color))"></path></svg>',
             template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Price</th><th>Size</th><th>Vol.</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
-            templateItem: (jd) => {
+            templateItem: (jd, widgetId) => {
                 let line = document.createElement('tr');
                 line.classList.add(`type-${jd.side}`);
                 line.setAttribute("data-ts-id", jd.id);
-                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize/* kvtTickers[jd.symbol].lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
+                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize/* kvtTickers[jd.symbol].lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`;
+                line.onclick = function() {
+                    kvt.setPrice(widgetId, jd.price)
+                }
 
                 return line;
             },
@@ -106,7 +109,7 @@ class KvaloodTools {
      * @returns 
      */
     setTickerInGroup(ticker, group_id, type) {
-        let widget = getGroupWidget(group_id);
+        let widget = kvt.getGroupWidget(group_id);
     
         if (!widget) {
             kvtd ?? console.error('[kvt][setTickerInGroup]', 'Виджет не найден')
@@ -131,7 +134,7 @@ class KvaloodTools {
      * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
      */
     setFastSum (widget, sum) {
-        let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
+        //let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
     
         /* if (!this.timeouts[timeoutName]) {
             this.timeouts[timeoutName] = setTimeout(function(){ */
@@ -164,6 +167,34 @@ class KvaloodTools {
             target: {value: vol},
             currentTarget: {value: vol}
         })
+    }
+
+    /**
+     * Установка цены в виджет "заявка"
+     * @param {*} widgetId 
+     * @param {*} vol 
+     */
+    setPrice(widgetId, vol) {
+        let widget = document.querySelector('[data-widget-id="'+ widgetId +'"]'),
+            group_id = this.getWidgetGroup(widget)
+
+        if (group_id) {
+            let widgetOrder = this.getGroupWidget(group_id)
+
+            if (widgetOrder) {
+                let input = widgetOrder.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]')
+                input = input.querySelector('input')
+            
+                vol = vol.toString()
+            
+                let i = kvt.reactGetEl(input)
+            
+                i.onChange({
+                    target: {value: vol},
+                    currentTarget: {value: vol}
+                })
+            }
+        }
     }
 
     /**
@@ -312,6 +343,50 @@ class KvaloodTools {
             console.error(`[kvt] getFullPriceLimit ERR ${err}`)
             return null
         })
+    }
+
+    /**
+     * Найдём виджет "заявка" по group_id
+     * @param {*} group_id 
+     * @returns 
+     */
+    getGroupWidget(group_id){
+        let orderWidgetObject;
+        document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
+            if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
+                orderWidgetObject = widget;
+            }
+        })
+        return orderWidgetObject;
+    }
+
+    /**
+     * Узнаем группу виджета
+     * @param {*} widget 
+     */
+    getWidgetGroup(widget) {
+        let color = ((widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"]').style) || null).color || null
+        
+        return color ? Object.keys(kvtGroups).find(key => kvtGroups[key] === color) : false;        
+    }
+
+    /**
+     * Все активные виджеты "заявка"
+     * @returns 
+     */
+    getActiveGroupsWidget() {
+        let activeGroupsIds = [];
+
+        document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
+            for (var group_id in kvtGroups) {
+                if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
+                    if (!activeGroupsIds.includes(group_id)) {
+                        activeGroupsIds.push(group_id)
+                    }
+                }
+            }
+        })
+        return activeGroupsIds.sort((a, b) => a - b);
     }
 
 }
@@ -641,35 +716,8 @@ function rcktMonConnect() {
 
 
 
-
-function getGroupWidget(group_id){
-    let orderWidgetObject;
-    document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
-        if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
-            orderWidgetObject = widget;
-        }
-    })
-    return orderWidgetObject;
-}
-
-// Все активные виджеты
-function getActiveGroupsWidget() {
-    let activeGroupsIds = [];
-
-    document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
-        for (var group_id in kvtGroups) {
-            if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
-                if (!activeGroupsIds.includes(group_id)) {
-                    activeGroupsIds.push(group_id)
-                }
-            }
-        }
-    })
-    return activeGroupsIds.sort((a, b) => a - b);
-}
-
 function createSTIGline(ticker) {
-    let groups = window.__kvtWidgetGroups ? window.__kvtWidgetGroups : getActiveGroupsWidget()
+    let groups = window.__kvtWidgetGroups ? window.__kvtWidgetGroups : kvt.getActiveGroupsWidget()
 
     if (groups.length) {
         let el = document.createElement('div');
@@ -684,7 +732,7 @@ function createSTIGline(ticker) {
 
 function createSTIG(ticker) {
 
-    let groups = getActiveGroupsWidget()
+    let groups = kvt.getActiveGroupsWidget()
 
     if (groups.length) {
         let t = document.querySelector('[class*=src-components-Menu-styles-item-]'),
@@ -927,11 +975,11 @@ function insetItemsContent(widgetId, data) {
                     wContent.insertAdjacentHTML('beforeend', `<tr class="type-separator"><td colspan="100%">🔸🔸🔹🔹 ${(jdTime.getUTCDate() + "").padStart(2, "0")}-${(jdTime.getUTCMonth() + 1 + "").padStart(2, "0")}-${jdTime.getUTCFullYear()} 🔹🔹🔸🔸</td></tr>`)
                 }
 
-                wContent.insertAdjacentElement('beforeend', kvtWidgets[wType].templateItem(jd))
+                wContent.insertAdjacentElement('beforeend', kvtWidgets[wType].templateItem(jd, widgetId))
             }
         } else {
             for (let jd of data) {
-                wContent.insertAdjacentElement('afterbegin', kvtWidgets[wType].templateItem(jd))
+                wContent.insertAdjacentElement('afterbegin', kvtWidgets[wType].templateItem(jd, widgetId))
                 if (399 < wContent.children.length) {
                     wContent.lastChild.remove();
                 }
