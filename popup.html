@@ -125,8 +125,39 @@
 			<div class="form-group">
 				<div class="form-check">
 					<input type="checkbox" name="hideShortsBrokers" id="hideShortsBrokers" class="form-check-input">
-					<label for="hideShortsBrokers">Скрыть инфу у каких брокеров есть бумага в шорт, в окне ввода заявки.</label>
+					<label for="hideShortsBrokers">Скрыть инфу, у каких брокеров есть бумага в шорт, в окне ввода заявки.</label>
 				</div>
+			</div>
+
+			<hr/>
+
+			<div class="form-group">
+				<label for="kvtQuotes" class="form-label">Котировки индексов</label>
+
+				<select id="kvtQuotes" class="form-control" style="width: 400px;" multiple>
+					<option value="US500">US500 - (SPX) S&P 500</option>
+					<option value="US100">US100 - (NDX) US tech 100</option>
+					<option value="RTY">RTY - (Russel) US Russel 2000</option>
+					<option value="US30">US30 - (DJI) Dow Jones Industrial Average</option>
+					<option value="HK50">HK50 - (HK50) Hong Kong 50</option>
+					<option value="DE40">DE40 - (DAX) Germany 40</option>
+
+					<option value="BTCUSD">BTCUSD - (BTCUSD) Bitcoin/USD</option>
+
+					<option value="OIL_BRENT">OIL_BRENT - (BRNT) Brent Oil / Нефть Brent</option>
+					<option value="OIL_CRUDE">OIL_CRUDE - (WTI) Oil Crude / Сланцевая нефть</option>
+					<option value="NATURALGAS">NATURALGAS - (NG) Natural gas / Природный газ</option>
+
+					<option value="GOLD">GOLD - (GOLD) Gold / Золото</option>
+					<option value="SILVER">SILVER - (SILVER) Silver / Серебро</option> 
+					<option value="ALUMINUM">ALUMINUM - (Al) Aluminum Spot / Алюминий</option>   
+					<option value="COPPER">COPPER - (COPPER) Copper / Медь</option>
+
+					<option value="VIX">VIX - (VIX) Volatility Index / Индекс страха</option>
+				</select>
+
+				<div class="form-text">Обновляются раз в секунду. Зажать ctrl + выбрать нужные</div>
+
 			</div>
 			
 			<hr/>

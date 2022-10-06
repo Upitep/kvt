@@ -4,7 +4,7 @@
 /*быстрый переход к окну заявки по группам*/
 .kvt-stigButtons {
     display: flex;
-    padding: 6px 12px 0;
+    padding: 4px 7px 0px;
     gap: 4px;
     flex-wrap: wrap;
 }
@@ -59,6 +59,29 @@ span[data-kvt-volume]:hover {
 }
 .pro-menu-item > * {
     margin-right: 10px;
+}
+
+/**
+* Quotes
+*/
+[data-kvt-quote] {
+    font-size: 13px;
+    color: rgba(var(--pro-text-02),1) !important;
+    margin-right: 9px;
+    display: flex;
+    gap: 4px;
+}
+[data-kvt-quote] .qt-v {
+    font-weight: bold;
+}
+[data-kvt-quote] .qt-v.loss {
+    color: rgba(var(--table-loss-color),1);
+}
+[data-kvt-quote] .qt-v.profit {
+    color: rgba(var(--table-profit-color),1);
+}
+[data-kvt-quote] .qt-p {
+    font-weight: bold;
 }
 
 /**

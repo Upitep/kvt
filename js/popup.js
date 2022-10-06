@@ -57,7 +57,7 @@ async function run() {
     })
 
     // input & checkbox settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'alorStats', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'alorStats', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -68,7 +68,32 @@ async function run() {
                 obj[key] = kvtSettings[key] = el.checked || false;
                 saveObjectInLocalStorage(obj);
             }
-        } else {                
+        } else if (el.tagName === 'SELECT') {
+            if (val && val.length) {
+                kvtSettings[key] = val;
+                for ( var i = 0, l = el.options.length, o; i < l; i++ ) {
+                    o = el.options[i];
+                    if ( val.includes(o.value)) {
+                        o.selected = true;
+                    }
+                }
+            }
+
+            el.onchange = function (e) {
+                let values = []
+
+                for ( var i = 0, l = el.options.length, o; i < l; i++ ) {
+                    o = el.options[i];
+                    if (o.selected) {
+                        values.push(o.value)
+                    }                    
+                }
+
+                var obj= {};
+                obj[key] = kvtSettings[key] = values || [];
+                saveObjectInLocalStorage(obj);
+            }
+        } else {
             val && (el.value = kvtSettings[key] = val);
             el.onchange = function () {
                 var obj= {};
