@@ -64,12 +64,29 @@ span[data-kvt-volume]:hover {
 /**
 * Quotes
 */
+.compactQuotes [data-kvt-quote] {
+    cursor: pointer;
+    position: relative;
+}
+.compactQuotes [data-kvt-quote]:hover .qt-v {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    background: rgba(var(--pro-base-01),1);
+    align-items: center;
+}
+.compactQuotes [data-kvt-quote] .qt-v {
+    display: none;
+    position: absolute;
+    text-align: center;
+}
 [data-kvt-quote] {
     font-size: 13px;
     color: rgba(var(--pro-text-02),1) !important;
     margin-right: 9px;
     display: flex;
-    gap: 4px;
+    gap: 0px 4px;
+    flex-wrap: wrap;
 }
 [data-kvt-quote] .qt-v {
     font-weight: bold;

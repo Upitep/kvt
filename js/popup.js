@@ -56,8 +56,8 @@ async function run() {
         })
     })
 
-    // input & checkbox settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'alorStats', 'debug']) {
+    // input & checkbox set&get settings
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'alorStats', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -101,6 +101,12 @@ async function run() {
                 saveObjectInLocalStorage(obj);
             }
         }
+    }
+
+    // set default value firs time
+    if (!await getObjectFromLocalStorage('customNameQuotes')) {
+        let event = new Event("change");
+        document.getElementById('customNameQuotes').dispatchEvent(event);
     }
 
     // Кнопка загрузить отчет

@@ -156,8 +156,22 @@
 					<option value="VIX">VIX - (VIX) Volatility Index / Индекс страха</option>
 				</select>
 
-				<div class="form-text">Обновляются раз в секунду. Зажать ctrl + выбрать нужные</div>
+				<div class="form-text"><b><i>системное_имя - описание</i></b>. Обновляются раз в секунду. Зажать ctrl + выбрать нужные</div>
 
+			</div>
+
+			<div class="form-group">
+				<div class="form-check">
+					<input type="checkbox" id="compactQuotes" class="form-check-input">
+					<label for="compactQuotes">Компактное отображение индексов</label>
+				</div>
+				<div class="form-text">Отображение только название котировки и процент. При наведении, покажется цена</div>
+			</div>
+
+			<div class="form-group">				
+				<label for="customNameQuotes">Кастомное название индексов</label>
+				<textarea id="customNameQuotes" class="form-control">US500:SPX,US100:NDX,RTY:RTY,US30:DJI,HK50:HK50,DE40:DAX,OIL_BRENT:BRENT,OIL_CRUDE:WIX,NATURALGAS:NG,ALUMINUM:AL</textarea>
+				<div class="form-text">Формат <i><b>системное_имя:ваше сокращение</b>,<b>системное_имя</b>:<b>ваше сокращение</b></i></div>
 			</div>
 			
 			<hr/>

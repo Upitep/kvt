@@ -553,15 +553,27 @@ function kvtRun() {
 
     kvt.widgetsLoad()
 
-    if (kvtSettings.kvtQuotes) {
+    if (kvtSettings.kvtQuotes && kvtSettings.kvtQuotes.length) {
         subscribe_quotes()
 
         let quotesBlock = document.querySelector('[class*=src-containers-Profile-styles-wallet-]'),
             deliver = quotesBlock.querySelector('[class*="src-containers-Profile-styles-divider"]'),
             newDeliver = deliver.insertAdjacentElement("afterend", deliver.cloneNode(true));
 
+        if (kvtSettings.compactQuotes) {
+            quotesBlock.classList.add('compactQuotes')
+        }
+
+        let customNames = {};
+        if (kvtSettings.customNameQuotes) {            
+            kvtSettings.customNameQuotes.split(",").filter(String).forEach(el => {
+                let id = el.split(':');
+                customNames[id[0]] = id[1]
+            })
+        }
+
         kvtSettings.kvtQuotes.forEach(s => {
-            newDeliver.insertAdjacentHTML("beforebegin", `<div data-kvt-quote="${s}">${s}:<span class="qt-v">N/A</span><span class="qt-p">(N/A)</span></div>`)
+            newDeliver.insertAdjacentHTML("beforebegin", `<div data-kvt-quote="${s}">${customNames[s] ? customNames[s] : s}:<span class="qt-v">N/A</span><span class="qt-p">(N/A)</span></div>`)
         })
     }
 
