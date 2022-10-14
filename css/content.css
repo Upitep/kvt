@@ -388,6 +388,11 @@ span[data-kvt-volume]:hover {
     height: 12px;
 }
 
+.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-iconWrapper] {
+    width: 12px;
+    height: 12px;
+}
+
 /**
  * История операций
  */
