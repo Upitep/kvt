@@ -125,17 +125,37 @@ class KvaloodTools {
     
         target && target._owner.memoizedProps.selectSymbol(ticker)
     
-        if (type && kvtSettings[type]) {
-            this.setFastSum(widget, kvtSettings[type])
+        if (type) {
+            this.setFastSum(widget, ticker, type)
         }
     }
 
     /**
      * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
      */
-    setFastSum (widget, sum) {
+    setFastSum (widget, ticker, type) {
         //let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
-    
+        let sum;
+
+        if (kvtSettings[type]) {
+            sum = kvtSettings[type]
+        }
+
+        // Заранее указанный объём для конкретных тикеров
+        if (window.__kvtFastSumRelation === undefined && kvtSettings.kvtFastSumRelation) {
+            window.__kvtFastSumRelation = {};
+            (kvtSettings.kvtFastSumRelation.split(',') || []).forEach(grp => {
+                let t = grp.split(':')
+                console.warn(t)
+                t[0] && t[1] ? window.__kvtFastSumRelation[t[0]] = t[1] : false;
+            })
+        }        
+
+        if (window.__kvtFastSumRelation && window.__kvtFastSumRelation[ticker]) {
+            sum = window.__kvtFastSumRelation[ticker]
+        }
+
+        if (sum) {
         /* if (!this.timeouts[timeoutName]) {
             this.timeouts[timeoutName] = setTimeout(function(){ */
                 // TODO: Найти более адекватный источник данных (мб запрос ttps://api-invest.tinkoff.ru/trading/stocks/get?ticker=*)
@@ -147,6 +167,7 @@ class KvaloodTools {
     
             }, 500);
         } */
+        }
     }
 
     /**

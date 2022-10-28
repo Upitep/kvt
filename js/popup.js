@@ -56,8 +56,20 @@ async function run() {
         })
     })
 
+    let accounts = await getBrokerAccounts(config.psid)    
+    if (accounts) {
+        let select = document.getElementById('statsFor')
+
+        for (let item of accounts) {
+            let el = document.createElement('option');
+            el.value = item.brokerAccountId;
+            el.innerHTML = item.name || 'Брокерский счёт Тинькофф';
+            select.appendChild(el);
+        }
+    }
+
     // input & checkbox set&get settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'alorStats', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -68,7 +80,7 @@ async function run() {
                 obj[key] = kvtSettings[key] = el.checked || false;
                 saveObjectInLocalStorage(obj);
             }
-        } else if (el.tagName === 'SELECT') {
+        } else if (el.tagName === 'SELECT' && el.getAttribute('multiple') !== null) {
             if (val && val.length) {
                 kvtSettings[key] = val;
                 for ( var i = 0, l = el.options.length, o; i < l; i++ ) {
@@ -126,7 +138,7 @@ async function run() {
 
         reportWindow.innerHTML = 'Загрузка...';
 
-        if (kvtSettings.alorStats) {
+        if (kvtSettings.statsFor === 'alor') {
             try {
                 let alorDate = new Date(fromDate),
                     alorDateTo = new Date(toDate),
@@ -353,7 +365,7 @@ async function run() {
                 }*/
 
             } catch (e) {
-                reportWindow.innerHTML = 'Не удалось загрузить финансовый результат Алор. Ошибка: ' + e.message
+                reportWindow.innerHTML = `Не удалось загрузить финансовый результат Алор. Ошибка: ${e.message}`
 
                 chrome.notifications.create("", {
                     title: "Финансовый результат Алор",
@@ -364,9 +376,15 @@ async function run() {
             }
         } else {
             if (config !== undefined) {
-                await fetch("https://api-invest.tinkoff.ru/trading/user/operations?appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {
+                let reqBody = {to: toDate, from: fromDate, overnightsDisabled: !0}
+
+                if (kvtSettings.statsFor) {
+                    reqBody.brokerAccountId = kvtSettings.statsFor
+                }
+                
+                await fetch(`https://api-invest.tinkoff.ru/trading/user/operations?appName=invest_terminal&appVersion=${config.versionApi}&sessionId=${config.psid}`, {
                     method: "POST",
-                    body: JSON.stringify({to: toDate, from: fromDate, overnightsDisabled: !0})
+                    body: JSON.stringify(reqBody)
                 }).then(function (e) {
                     return e.json();
                 }).then(function (e) {
@@ -794,6 +812,22 @@ function downloadCSV (jsonData, filename = 'CSV') {
 }
 
 
+/**
+ * Список счетов аккаунта
+ * @returns []
+ */
+async function getBrokerAccounts (psid) {
+    return await fetch(`https://api-invest.tinkoff.ru/trading/user/broker_accounts?appName=invest_terminal&appVersion=&sessionId=${psid}`, {
+        method: "POST",
+    }).then(function (e) {
+        return e.json();
+    }).then(function (e) {
+        return ((e.payload || {} ).accounts || [])
+    }).catch(err => {
+        console.error(`[kvt] getBrokerAccounts ERR ${err}`)
+        return null
+    })
+}
 
 run()
 
