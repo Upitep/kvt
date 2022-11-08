@@ -28,7 +28,7 @@ let kvtd = false,
         16: "rgb(115, 176, 119)",
     },
     kvtTickers = {},
-    kvtWidgets = { // FIXME: где-то надо брать lotSize для Ру акций, потому что неполучится посчитать VOL
+    kvtWidgets = {
         spbTS: {
             name: 'T&S',
             icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 15C11.866 15 15 11.866 15 8C15 4.134 11.866 1 8 1C4.134 1 1 4.134 1 8C1 11.866 4.134 15 8 15ZM10.6745 9.62376L8.99803 8.43701L8.9829 4.5097C8.98078 3.95742 8.53134 3.51143 7.97906 3.51356C7.42678 3.51568 6.98079 3.96512 6.98292 4.5174L7.00019 9.00001C7.00152 9.34537 7.18096 9.66281 7.47482 9.84425L9.62376 11.3255C10.0937 11.6157 10.7099 11.4699 11 11C11.2901 10.5301 11.1444 9.91391 10.6745 9.62376Z" fill="rgb(var(--pro-icon-color))"></path></svg>',
@@ -102,10 +102,10 @@ class KvaloodTools {
     }
 
     /**
-     * Установим тикер в группу
+     * Установим тикер в группу     * 
      * @param {*} ticker 
      * @param {*} group_id 
-     * @param {*} type 
+     * @param {*} type При указании type, устанавливает быстрый объём
      * @returns 
      */
     setTickerInGroup(ticker, group_id, type) {
@@ -133,20 +133,18 @@ class KvaloodTools {
     /**
      * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
      */
-    setFastSum (widget, ticker, type) {
-        //let timeoutName = widget.getAttribute('data-widget-id') + widget.getAttribute('data-symbol-id') + 'fast'
+    async setFastSum (widget, ticker, type) {
         let sum;
 
         if (kvtSettings[type]) {
             sum = kvtSettings[type]
         }
 
-        // Заранее указанный объём для конкретных тикеров
+        // Заранее указанный объём в деньгах для конкретных тикеров
         if (window.__kvtFastSumRelation === undefined && kvtSettings.kvtFastSumRelation) {
             window.__kvtFastSumRelation = {};
             (kvtSettings.kvtFastSumRelation.split(',') || []).forEach(grp => {
                 let t = grp.split(':')
-                console.warn(t)
                 t[0] && t[1] ? window.__kvtFastSumRelation[t[0]] = t[1] : false;
             })
         }        
@@ -156,18 +154,33 @@ class KvaloodTools {
         }
 
         if (sum) {
-        /* if (!this.timeouts[timeoutName]) {
-            this.timeouts[timeoutName] = setTimeout(function(){ */
-                // TODO: Найти более адекватный источник данных (мб запрос ttps://api-invest.tinkoff.ru/trading/stocks/get?ticker=*)
-                let price = parseFloat(widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML.replace(/\s+/g, '').replace(/[,]+/g, '.'));
+            let {price, lot_size} = await this.getSymbolPriceLot(widget, ticker);
 
-                this.setFastVolume(widget, (sum / price).toFixed());
-    /* 
-                this.timeouts[timeoutName] = null
-    
-            }, 500);
-        } */
+            this.setFastVolume(widget, (sum / price / lot_size).toFixed());       
         }
+    }
+
+    /**
+     * Цена и лотность из html
+     * @param {*} widget 
+     * @returns 
+     */
+    async getSymbolPriceLot(widget, ticker) {
+        let price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
+            lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,""),
+            price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
+            future_price = 0;
+
+        if (price_block.endsWith('пт.')) {
+            if (!kvtSettings.brokerAccountId) {
+                kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
+            }
+
+            future_price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+            kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${future_price}`)
+        }
+
+        return {price, future_price, lot_size}
     }
 
     /**
@@ -305,6 +318,7 @@ class KvaloodTools {
     }
 
     /**
+     * // DEL: не используется
      * Информация о тикере спрятанная в react
      * @param {*} widgetId 
      * @returns 
@@ -682,7 +696,7 @@ function kvt_connect(resubscribe = false) {
 
             switch (msg.type) {
                 case 'setTicker':
-                    kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumBot') // TODO: Wtf?
+                    kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumBot')
                     break
 
                 case 'getLastTrades': {
@@ -850,7 +864,7 @@ function createVel(ticker, groupId) {
     vel.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="currentColor"></circle></svg>';
 
     vel.onclick = e => {
-        kvt.setTickerInGroup(ticker, groupId)
+        kvt.setTickerInGroup(ticker, groupId, 'vel')
     }
 
     return vel;
@@ -868,8 +882,7 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
 
         let widgetId = widget.getAttribute('data-widget-id'),
             ticker = widget.getAttribute('data-symbol-id'),
-            price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
-            price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
+            {price, future_price, lot_size} = await kvt.getSymbolPriceLot(widget, ticker),
             diff = 0;
 
         if (kvtPrices[widgetId] && !create) {
@@ -877,7 +890,7 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
                 load_buttons()
             } else {
                 // Меняем только если нету или цена > || < 0.5% От ранее установленной.
-                diff = (price - kvtPrices[widgetId].price) * 100 / price;
+                diff = (price - kvtPrices[widgetId].price_html) * 100 / price;
                 if (diff <= -0.5 || diff >= 0.5) {
                     kvtd ?? console.log('[add_kvtFastVolumePriceButtons] разница', diff )
                     load_buttons()
@@ -894,37 +907,26 @@ async function add_kvtFastVolumePriceButtons(widget, create = false) {
             }
 
             setTimeout(async function() {
-                let block = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]'),                
-                    lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,"")
-
-                // Если фьюч, узнаем его стоимость
-                if (price_block.endsWith('пт.')) {
-                    if (!kvtSettings.brokerAccountId) {
-                        kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
-                    }
-
-                    price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
-                    kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${price}`)
-                }
-
                 let insertBlock = widget.querySelector('.kvtFastVolumePrice');
                 if (!insertBlock) {
                     // kvtFastVolumeSize
-                    block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
+                    widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]').insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
                     insertBlock = widget.querySelector('.kvtFastVolumePrice');
                 } else {
                     insertBlock.innerHTML = ''
                 }
 
-                let vols = [];
+                let vols = [],
+                    prc = future_price !== 0 ? future_price : price
+
                 for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
-                    let vol = (i / price / lot_size).toFixed();
+                    let vol = Number((i / prc / lot_size).toFixed());
 
                     if (kvtSettings.kvtFastVolumePriceRound) {
                         vol = kvt.customRound(vol)
                     }
 
-                    if (!vols.includes(vol) && vol !== 0) {
+                    if (vol !== 0 && !vols.includes(vol)) {
                         vols.push(vol);
 
                         let vel = document.createElement('span')

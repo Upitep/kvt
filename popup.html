@@ -173,7 +173,7 @@
 			<div class="form-group">				
 				<label for="customNameQuotes">Кастомное название индексов</label>
 				<textarea id="customNameQuotes" class="form-control">US500:SPX,US100:NDX,RTY:RTY,US30:DJI,HK50:HK50,DE40:DAX,OIL_BRENT:BRENT,OIL_CRUDE:WIX,NATURALGAS:NG,ALUMINUM:AL</textarea>
-				<div class="form-text">Формат <i><b>системное_имя:ваше сокращение</b>,<b>системное_имя</b>:<b>ваше сокращение</b></i></div>
+				<div class="form-text">Формат <i><b>системное_имя:ваше сокращение,системное_имя:ваше сокращение</i></div>
 			</div>
 			
 			<hr/>
@@ -229,20 +229,21 @@
 			
 			<hr/>
 			
-			<h3>Быстрый объем в деньгах ($/₽) при переходе к группе:</h3>
+			<h3>Быстрый объем в деньгах при переходе к группе:</h3>
 			
 			<div class="form-group row g-2">
 				<div class="col-6">
 					<label for="kvtSTIGFastVolSumBot" class="form-label">из ботов</label>
-					<input type="text" name="kvtSTIGFastVolSumBot" id="kvtSTIGFastVolSumBot" class="form-control" placeholder="555">
+					<input type="text" name="kvtSTIGFastVolSumBot" id="kvtSTIGFastVolSumBot" class="form-control" placeholder="100000">
 				</div>
 				<div class="col-6">
 					<label for="kvtSTIGFastVolSumRcktMon" class="form-label">из RcktMon</label>
-					<input type="text" name="kvtSTIGFastVolSumRcktMon" id="kvtSTIGFastVolSumRcktMon" class="form-control" placeholder="666">
+					<input type="text" name="kvtSTIGFastVolSumRcktMon" id="kvtSTIGFastVolSumRcktMon" class="form-control" placeholder="500000">
 				</div>
 				<div class="col-12">
-					<label for="kvtFastSumRelation" class="form-label">Подстановка заранее указанного объёма для конкретных тикеров</label>
+					<label for="kvtFastSumRelation" class="form-label">Подстановка заранее указанного объёма для конкретных тикеров при переходе к тикеру из RcktMon, telegram ботов или кнопкок "STIG" в терминале</label>
 					<textarea id="kvtFastSumRelation" class="form-control" placeholder="BABA:15000,TCSG:100000,MOEX:25000"></textarea>
+					<div class="form-text">Формат: <i><b>ТИКЕР:сумма_в_деньгах,ТИКЕР:сумма_в_деньгах</div>
 				</div>
 			</div>
 
