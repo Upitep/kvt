@@ -601,9 +601,9 @@ async function run() {
             let m = new Date(),
                 fromDate = document.getElementById('fromDate'),
                 toDate = document.getElementById('toDate'),
-                year = m.getFullYear(),
-                mount = (m.getMonth() + 1 + "").padStart(2, "0"),
-                day = (m.getDate() + "").padStart(2, "0");
+                year = m.getUTCFullYear(),
+                mount = (m.getUTCMonth() + 1 + "").padStart(2, "0"),
+                day = (m.getUTCDate() + "").padStart(2, "0");
 
             let time = year + "-" + mount + "-" + day + "T",
                 monday = getMonday()
@@ -618,12 +618,12 @@ async function run() {
                     break
 
                 case 'from_week' :
-                    fromDate.value = monday.getFullYear() + "-" + (monday.getMonth() + 1 + "").padStart(2, "0") + "-" + (monday.getDate() + "").padStart(2, "0") + "T" + '06:59'
+                    fromDate.value = monday.getUTCFullYear() + "-" + (monday.getUTCMonth() + 1 + "").padStart(2, "0") + "-" + (monday.getUTCDate() + "").padStart(2, "0") + "T" + '06:59'
                     toDate.value = ''
                     break
 
                 case 'from_mount' :
-                    fromDate.value = monday.getFullYear() + "-" + (monday.getMonth() + 1 + "").padStart(2, "0") + "-" + "1".padStart(2, "0") + "T" + '06:59'
+                    fromDate.value = monday.getUTCFullYear() + "-" + (monday.getUTCMonth() + 1 + "").padStart(2, "0") + "-" + "1".padStart(2, "0") + "T" + '06:59'
                     toDate.value = ''
                     break
             }
