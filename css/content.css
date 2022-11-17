@@ -341,7 +341,7 @@ span[data-kvt-volume]:hover {
     padding-top: 4px;
 }
 
-.kvt-compactStyle .UICard {
+.kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-main-] {
     padding: 3px 6px;
     min-width: 200px;
 }
