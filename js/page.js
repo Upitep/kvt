@@ -27,7 +27,6 @@ let kvtd = false,
         15: "rgb(75, 208, 225)",
         16: "rgb(115, 176, 119)",
     },
-    kvtTickers = {},
     kvtWidgets = {
         spbTS: {
             name: 'T&S',
@@ -37,7 +36,7 @@ let kvtd = false,
                 let line = document.createElement('tr');
                 line.classList.add(`type-${jd.side}`);
                 line.setAttribute("data-ts-id", jd.id);
-                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize/* kvtTickers[jd.symbol].lotSize */)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`;
+                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`;
                 line.onclick = function() {
                     kvt.setPrice(widgetId, jd.price)
                 }
@@ -63,7 +62,8 @@ let kvtd = false,
             },
             unsubscribe: unsubscribe_getdp
         }
-    };
+    },
+    kvtWidgetsSettings = {};
 
 
 // TODO: обернуть всё в класс
@@ -83,7 +83,7 @@ class KvaloodTools {
             setTimeout(function() {
                 kvtd ?? console.log('[kvt][widgetsLoad] БД Есть виджеты')
                 Object.keys(widgets).forEach(i => {
-                    let widget = document.querySelector('[data-widget-id=' + i + ']')
+                    let widget = document.querySelector(`[data-widget-id=${i}]`)
     
                     if (widget) {
                         kvtd ?? console.log('[kvt][widgetsLoad] Виджет есть', i, widget)
@@ -443,7 +443,6 @@ class KvaloodTools {
 
             if (block) {
                 let val = block.querySelector('.qt-v'),
-                    positivePerc = quotes[symb].p >= 0 ? true : false,
                     percent = block.querySelector('.qt-p');
 
                 val && quotes[symb].v !== val.innerHTML && (quotes[symb].v > val.innerHTML ? val.setAttribute("class", "qt-v profit") : val.setAttribute("class", "qt-v loss"));
@@ -455,7 +454,13 @@ class KvaloodTools {
                     val.setAttribute("class", "qt-v")
                 }, 700)
 
-                positivePerc ? percent.setAttribute("class", "qt-p profit") : percent.setAttribute("class", "qt-p loss")
+                if (quotes[symb].p >= 0) {
+                    percent.setAttribute("class", "qt-p profit");
+                    percent.textContent = `(+${quotes[symb].p}%)`;
+                } else {
+                    percent.setAttribute("class", "qt-p loss");
+                    percent.textContent = `(${quotes[symb].p}%)`;
+                }
             }
         })
     }
@@ -975,61 +980,117 @@ function add_kvtFastVolumeSizeButtons(widget) {
 
 function kvtCreateWidget(widget) {
     if (widget && !widget.getAttribute('data-kvt-widget-load')) {
-        let kvtWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}"),
+        let storageWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}"),
             widgetID = widget.getAttribute("data-widget-id"),
             symbol = widget.getAttribute("data-symbol-id") || '',
             widgetType,
-            onClose = function () {};
+            onClose = function () {};     
 
-        if (typeof kvtWidgets[widgetID] !== 'undefined') {
-            widgetType = kvtWidgets[widgetID]
+        if (typeof storageWidgets[widgetID] !== 'undefined') {
+            widgetType = storageWidgets[widgetID]['type'] ? storageWidgets[widgetID]['type'] : storageWidgets[widgetID];
         } else if (window[`__kvtNewWidget`]) {
             widgetType = window[`__kvtNewWidget`]
+            storageWidgets[widgetID] = {type: widgetType, settings: {}}
             window[`__kvtNewWidget`] = false;
         }
 
-        kvtd ?? console.log('[kvt][kvtCreateWidget]', 'вызвали изменение виджета', widgetID)
-
-        if (widgetType) {
+        if (Object.keys(kvtWidgets).includes(widgetType)) {            
+            kvtd ?? console.log(`[kvt][kvtCreateWidget] вызвали изменение виджета ${widgetID}`)
+                       
             widget.setAttribute('data-kvt-widget-load', widgetType)
-            kvtd ?? console.log('Установим seAttribute', 'data-kvt-widget-load', widgetType)
-            kvtWidgets[widgetID] = widgetType
-            localStorage.setItem("_kvt-widgets", JSON.stringify(kvtWidgets))
-        }
-
-        if (widgetType === 'spbTS') {
-            initWidget(widget, widgetType, symbol)
-            kvtd ?? console.log('[kvt][spbTS]', 'хотим подписаться на ', widgetID, symbol)
+            kvtWidgetsSettings[widgetID] = storageWidgets[widgetID] = {type: widgetType, settings: ((storageWidgets[widgetID] || {}).settings || {})}
             
-            if (symbol.length) {
-                kvtd ?? console.warn('subscribe_TS_3')
-                subscribe_TS(widgetID, symbol)
+            localStorage.setItem("_kvt-widgets", JSON.stringify(storageWidgets))
+            
+            if (widgetType === 'spbTS') {
+                initWidget(widget, widgetType, symbol)
+                kvtd ?? console.log('[kvt][spbTS]', 'хотим подписаться на ', widgetID, symbol)
+                
+                if (symbol.length) {
+                    kvtd ?? console.warn('subscribe_TS_3')
+                    subscribe_TS(widgetID, symbol)
+                }
+                observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
+                    unsubscribe_TS(widgetID);
+                    kvtd ?? console.warn('subscribe_TS_4')
+                    subscribe_TS(widgetID, newSymbol);
+                })
+                onClose = unsubscribe_TS
             }
-            observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
-                unsubscribe_TS(widgetID);
-                kvtd ?? console.warn('subscribe_TS_4')
-                subscribe_TS(widgetID, newSymbol);
-            })
-            onClose = unsubscribe_TS
-        }
+    
+            if (widgetType === 'getdp') {
+                initWidget(widget, widgetType, symbol)
+                subscribe_getdp(widgetID, symbol)
+                observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
+                    unsubscribe_getdp(widgetID);                
+                    subscribe_getdp(widgetID, newSymbol);
+                })
+                onClose = unsubscribe_getdp
+            }
 
-        if (widgetType === 'getdp') {
-            initWidget(widget, widgetType, symbol)
-            subscribe_getdp(widgetID, symbol)
-            observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
-                unsubscribe_getdp(widgetID);                
-                subscribe_getdp(widgetID, newSymbol);
-            })
-            onClose = unsubscribe_getdp
-        }
+            // Настройки
+            if (widgetType === 'spbTS') {
+                let setting_btn = widget.querySelector('[class*="packages-core-lib-components-WidgetBody-WidgetBody-portalIcons-"]')    
+                setting_btn.innerHTML = `<div class="src-containers-IconsPortal-styles-popoverTarget-3etvx"><div class="pro-popover-content"><span data-qa-tag="icon" data-qa-icon="settings-small-filled" class="src-containers-IconsPortal-styles-icon-2TlS0 pro-icon-interactive pro-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="rgb(var(--pro-icon-color))" fill-rule="evenodd" clip-rule="evenodd" d="M7 14a6 6 0 0 0 2 0v-2a4 4 0 0 0 1 0l1 1a6 6 0 0 0 2-2l-1-1a4 4 0 0 0 0-1h2V8a6 6 0 0 0 0-1h-2a4 4 0 0 0 0-1l1-1-2-2-1 1H9V2a6 6 0 0 0-2 0v2H6L5 3 4 4 3 5l1 1v1H2a6 6 0 0 0 0 2h2a4 4 0 0 0 0 1l-1 1 1 1a6 6 0 0 0 1 1l1-1a4 4 0 0 0 1 0v2Zm3-6a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"></path></svg></span></div></div>`;
+            
+                widget.querySelector('.kvt-widget').insertAdjacentHTML("beforeend", '<div class="kvt-widget-settings"></div>')
+                let kws = widget.querySelector('.kvt-widget-settings')
 
-        // отписка при закрытии виджета
-        widget.querySelector('[class*="packages-core-lib-components-WidgetBody-WidgetBody-icons"]').addEventListener("click", function () {
-            onClose(widgetID)
-            kvtWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
-            delete kvtWidgets[widgetID]
-            localStorage.setItem("_kvt-widgets", JSON.stringify(kvtWidgets))
-        })
+                kws.innerHTML = `<div class="pro-input-group"><label>Показывать принты лотностью от</label><input type="number" oninput="validity.valid||(value='');" name="lotSize_show" class="pro-input"></div><button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+
+                let settings_list = ['lotSize_show']
+
+                // заполняем настройки
+                for (const id of settings_list) {
+                    let el = kws.querySelector(`[name=${id}]`)
+
+                    if (el.getAttribute('type') === 'checkbox') {
+                        
+                    } else if (el.tagName === 'SELECT' && el.getAttribute('multiple') !== null) {
+                        
+                    } else if (el.getAttribute('type') === 'number') {
+                        el.value = kvtWidgetsSettings[widgetID].settings[id] || '';
+                    } else {
+                        el.value = kvtWidgetsSettings[widgetID].settings[id] || '';
+                    }
+                }
+
+                // Сохраняем настройки
+                kws.querySelector('button').addEventListener('click', function () {
+                    storageWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
+                    kvtWidgetsSettings[widgetID]['settings'] = {}
+
+                    for (const id of settings_list) {
+                        let el = kws.querySelector(`[name=${id}]`)
+
+                        if (el.getAttribute('type') === 'checkbox') {
+                            
+                        } else if (el.tagName === 'SELECT' && el.getAttribute('multiple') !== null) {
+                            
+                        } else {
+                            kvtWidgetsSettings[widgetID]['settings'][id] = el.value || '';
+                        }
+                    }
+
+                    storageWidgets[widgetID] = kvtWidgetsSettings[widgetID]
+                    localStorage.setItem("_kvt-widgets", JSON.stringify(storageWidgets))
+                    
+                    kws.style.display = 'none'
+                })
+
+                setting_btn.addEventListener("click", function () {
+                    "block" === kws.style.display ? kws.style.display="none" : kws.style.display="block";
+                })
+            }
+    
+            // отписка при закрытии виджета
+            widget.querySelector('[class*="packages-core-lib-components-WidgetBody-WidgetBody-icon-"][data-qa-icon="cross"]').addEventListener("click", function () {
+                onClose(widgetID)
+                storageWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
+                delete storageWidgets[widgetID]
+                localStorage.setItem("_kvt-widgets", JSON.stringify(storageWidgets))
+            })
+        }
     }
 }
 
@@ -1071,9 +1132,11 @@ function insetItemsContent(widgetId, data) {
             }
         } else {
             for (let jd of data) {
-                wContent.insertAdjacentElement('afterbegin', kvtWidgets[wType].templateItem(jd, widgetId))
-                if (399 < wContent.children.length) {
-                    wContent.lastChild.remove();
+                if(jd.qty >= (((kvtWidgetsSettings[widgetId] || {}).settings || {}).lotSize_show || 1)) {
+                    wContent.insertAdjacentElement('afterbegin', kvtWidgets[wType].templateItem(jd, widgetId))
+                    if (399 < wContent.children.length) {
+                        wContent.lastChild.remove();
+                    }
                 }
             }
         }

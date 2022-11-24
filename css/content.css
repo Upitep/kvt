@@ -83,10 +83,11 @@ span[data-kvt-volume]:hover {
 [data-kvt-quote] {
     font-size: 13px;
     color: rgba(var(--pro-text-02),1) !important;
-    margin-right: 9px;
     display: flex;
     gap: 0px 4px;
     flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 4px;
 }
 [data-kvt-quote] .qt-v {
     font-weight: bold;
@@ -527,6 +528,36 @@ span[data-kvt-volume]:hover {
     transform: translate3d(0px, 0px, 0px);
     z-index: 2022;
 }
+.kvt-widget-settings {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    z-index: 2023;
+    background: rgba(var(--pro-base-01),1);
+    display: none;
+    padding: 10px 6px;
+}
+.kvt-widget-settings .pro-input-group {
+    display: flex;
+    flex-direction: column;
+}
+.kvt-widget-settings .pro-input-group label{
+    margin-bottom: 5px;
+}
+.kvt-widget-settings button {
+    margin-top: 10px;
+}
+
+.kvt-widget-settings input::-webkit-outer-spin-button,
+.kvt-widget-settings input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.kvt-widget-settings input[type=number] {
+    -moz-appearance: textfield;
+}
+
 .kvt-widget-table{
     border-collapse: collapse;
     min-width: 140px;
