@@ -69,7 +69,7 @@ async function run() {
     }
 
     // input & checkbox set&get settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -705,9 +705,20 @@ async function run() {
     /**
      * Принты
      */
-    document.getElementById('kvLoadPrintsTicker').addEventListener('click', function (e) {
+    document.getElementById('kvtLoadPrintsTicker').addEventListener('click', function (e) {
         loadPrintsTicker()
     });
+
+    document.getElementById('kvtDownloadPrintsTicker').addEventListener('click', function (e) {
+        loadPrintsTicker(1)
+    });
+
+    // Установим дату на сегодня UTC
+    (function setPrintDate() {
+        let m = new Date();
+
+        document.getElementById('printDate').value = `${m.getUTCFullYear()}-${(m.getUTCMonth() + 1 + "").padStart(2, "0")}-${(m.getUTCDate() + "").padStart(2, "0")}`
+    })();
 
     document.getElementById('printTicker').addEventListener("keydown", function(e) {
         if (e.key === 'Enter') {
@@ -728,55 +739,111 @@ function getMonday() {
     return today
 }
 
-function loadPrintsTicker() {
+async function loadPrintsTicker(onlyDownload = 0) {
     let printsWindow = document.getElementById('printsWindow'),
         printTicker = document.getElementById('printTicker').value,
-        printExchange = document.getElementById('printExchange').value;
+        printDate = document.getElementById('printDate').value,
+        printMinQty = document.getElementById('printMinQty').value;
 
     if (printTicker) {
         printsWindow.innerHTML  = 'Загрузка...';
 
-        kvtGetAlltradesByTicker(printTicker.toUpperCase(), printExchange).then(r => {
+        await fetch(`https://kvalood.ru/trades?token=${kvtSettings.kvtToken}&ticker=${printTicker}&date=${printDate}`, {}
+        ).then(e => {
+            return e.json()            
+        }).then(res => {
 
-            if (r.result === 'error') {
-                throw r
+            var time = performance.now();
+            
+            if (res.status === 'ERROR') {
+                throw res
             }
 
-            if(r && r.length) {
-                r.reverse();
+            if(res.payload && res.payload.trades && res.payload.trades.length) {
 
-                let table = '<table class="report_table">' +
-                    '<thead><tr>' +
-                    '<th>цена</th>' +
-                    '<th>объем шт</th>' +
-                    '<th>объём $</th>' +
-                    '<th>время</th>' +
-                    '</tr></thead><tbody>';
+                // Объём в деньгах, Покупки/продажи, объём продаж/объём покупок
+                let stat = {vol_money: 0, buy_count: 0, sell_count: 0, buy_vol: 0, sell_vol: 0},
+                    table = '<table class="report_table mt-2">' +
+                        '<thead><tr>' +
+                        '<th>цена</th>' +
+                        '<th>объем шт</th>' +
+                        '<th>объём</th>' +
+                        '<th>время</th>' +
+                        '</tr></thead><tbody>',
+                    limit_show = 4000, // Лимит отображения строк в таблице
+                    showed = 0, // Показано строк, если 0 не показывать таблицу
+                    limit_exceeded = 0; // Превышен лимит
 
-                r.forEach(function (e) {
-                    table += '<tr' + (e.side === 'sell' ? ' class="side-sell"' : ' class="side-buy"') + '>' +
-                        '<td>' + kvth._ft(e.price) + '</td>' +
-                        '<td>' + e.qty + '</td>' +
-                        '<td>' + kvth._ft(e.qty * e.price) + '</td>' +
-                        '<td>' + kvth._tsToTime(e.timestamp) + '</td>' +
-                        '</tr>';
-                });
+                // ["25.15", 1, "buy", 1668094774648]
+                for (let i = 0; i < res.payload.trades.length; i++) {
+                    let tr = res.payload.trades[i],
+                        vol = tr[0] * tr[1] * res.payload.lotsize
+
+                    res.payload.trades[i][3] = kvth._tsToTime(tr[3])
+
+                    if (tr[1] >= printMinQty) {
+                        if (showed < limit_show) {
+                            showed++;
+                            !onlyDownload ? table += '<tr' + (tr[2] === 'sell' ? ' class="side-sell"' : ' class="side-buy"') + '>' +
+                            '<td>' + kvth._ft(tr[0]) + '</td>' +
+                            '<td>' + tr[1] + '</td>' +
+                            '<td>' + kvth._ft(vol) + '</td>' +
+                            '<td>' + tr[3] + '</td>' +
+                            '</tr>' : '';
+                        }                       
+                    }
+
+                    stat.vol_money += vol
+                    if (tr[2] === 'sell') {
+                        stat.sell_count += tr[1]
+                        stat.buy_vol += vol
+                    } else {
+                        stat.buy_count += tr[1]
+                        stat.sell_vol += vol
+                    }
+                }
+
                 table += '</tbody></table>';
 
-                printsWindow.innerHTML = table;
+                if (showed === limit_show) {
+                    table = kvth._errW(`В таблице показаны последние ${limit_show} сделок, что бы не грузить ПК`) + table;
+                }
+
+                // БЛОК СТАТИСТИКИ
+                let statBlock = ''
+                if (stat.buy_vol && stat.sell_vol) {
+                    statBlock = `
+                        <div class="printsStats mb-2">
+                            <div class="printsStats__headline d-flex g-2 mb-1" style="gap: 13px;">
+                                <div>Объём: <span>${kvth.sizeFormat((stat.buy_vol + stat.sell_vol))} ${res.payload.currency}</span></div>
+                                <div>Покупок: <span>${kvth.sizeFormat((stat.buy_vol))} ${res.payload.currency}</span></div>
+                                <div>Продаж: <span>${kvth.sizeFormat((stat.sell_vol))} ${res.payload.currency}</span></div>
+                            </div>
+                            <div class="printsStats__percentage"><div class="printsStats__percentagej-buy" style="width: ${(stat.buy_vol * 100 / (stat.buy_vol + stat.sell_vol)).toFixed()}%"></div></div>
+                        </div>
+                    `;
+                }
+
+                if (!showed) {
+                    table = 'Нечего показывать'
+                }
+
+                if (onlyDownload) {
+                    table = ''
+                    downloadCSV(res.payload.trades)
+                }
+
+                printsWindow.innerHTML = statBlock + (showed ? table : '');
             } else {
                 printsWindow.innerHTML  = 'Нет сделок';
             }
+
+            time = performance.now() - time;
+            console.log('Время выполнения = ', time);
+            
         }).catch(err => {
-            let error;
-            console.log('err', err)
-            switch (err.status) {
-                case 401: error = err.statusText + ', проверьте актуальность токена в настройках'; break;
-                case 403: error = err.statusText + ', проверьте токен в настройках'; break;
-                case 404: error = err.statusText + ', такого тикера нет'; break;                
-                default: error = err.status + ' ' + err.statusText;
-            }
-            printsWindow.innerHTML = kvth._errW(error);
+            console.log(err)
+            printsWindow.innerHTML = kvth._errW(`${err.status}: ${err.message}`)
         })
     } else {
         printsWindow.innerHTML  = kvth._errW('укажите тикер');

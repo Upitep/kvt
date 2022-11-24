@@ -53,17 +53,26 @@
 		
 		<!-- принты -->
 		<div id="prints" class="b-tab">		
-			<p class="mt-0 mb-2">Загрузка истории сделок (t&s) за сегодняшний торговый день через API Alor брокера</p>	
-			<div class="form-group">
-				<input type="text" id="printTicker" class="form-control" placeholder="введите тикер СПБ" style="width: 90px;">
-				<select id="printExchange" class="form-control" style="width: 70px;">
-					<option value="SPBX" selected>SPBX</option>
-					<option value="MOEX">MOEX</option>
-				</select>
-				<button id="kvLoadPrintsTicker" class="btn">Загрузить все сделки по тикеру</button>
+			<p class="mt-0 mb-2">Истории сделок (t&s) акциям за N торговый день.</p>	
+			<div class="form-inline row g-2">
+				<div class="form-group col-2">
+					<input type="text" id="printTicker" class="form-control" placeholder="VEON-RX">
+				</div>
+				<div class="form-group col-3">
+					<input type="date" id="printDate" class="form-control">
+				</div>
+				<div class="form-group col-2">
+					<input type="number" id="printMinQty" class="form-control" min="1" value="10" title="Минимальный объём для отображения">
+				</div>
+				<div class="form-group col-5" style="gap: 7px;">
+					<button id="kvtLoadPrintsTicker" class="btn">Загрузить</button>
+					<button id="kvtDownloadPrintsTicker" class="btn" value="1">Скачать *.csv</button>
+				</div>
 			</div>
 			
-			<div id="printsWindow"></div>
+			<div id="printsWindow" class="mt-2 mb-1"></div>
+
+			<div class="note">* исторические данные не полные. Акции SPBX и MOEX.</div>
 		</div>
 		
 		<!-- тикеры -->

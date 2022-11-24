@@ -28,10 +28,22 @@ hr{
     border-top: 1px solid rgba(0,0,0,.1);
 }
 
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
 .d-block{
     display: block;
 }
-
+.d-flex {
+    display: flex!important;
+}
 .d-none{
     display: none;
 }
@@ -99,26 +111,36 @@ label {
     margin-bottom: 0;
 }
 
-.btn{
+.btn {
     background: #eee;
     border: 1px solid #939393;
     cursor: pointer;
     padding: .275rem .475rem;
     text-decoration: none;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 .btn:focus {
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
 }
-.btn-sm{
+.btn-sm {
     padding: 0.125rem 0.25rem;
     line-height: 1;
+}
+.btn:hover{
+    background: #e0e0e0;
+    border-color: #646464;
 }
 
 .btn-secondary {
     color: #767676;
     background-color: #eeeeee;
     border-color: #d0d0d0;
+}
+.btn-secondary:hover{
+    background: #e0e0e0;
+    border-color: #aaaaaa;
+    color: #4b4b4b;
 }
 
 /**
@@ -299,6 +321,27 @@ tr.side-buy{
 span.red{
     color: #ff3838;
     font-weight: 500;
+}
+
+/**
+* Лента сделок
+*/
+.printsStats{
+
+}
+.printsStats__headline{
+
+}
+.printsStats__percentage{
+    background-color: #e73f53;
+    width: 100%;
+    border-radius: 15px;
+}
+.printsStats__percentagej-buy{
+    background-color: #74c25c;
+    color: white;
+    border-radius: 15px 0 0 15px;
+    height: 7px;
 }
 
 /**
