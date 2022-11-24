@@ -771,8 +771,7 @@ async function loadPrintsTicker(onlyDownload = 0) {
                         '<th>время</th>' +
                         '</tr></thead><tbody>',
                     limit_show = 4000, // Лимит отображения строк в таблице
-                    showed = 0, // Показано строк, если 0 не показывать таблицу
-                    limit_exceeded = 0; // Превышен лимит
+                    showed = 0; // Показано строк, если 0 не показывать таблицу
 
                 // ["25.15", 1, "buy", 1668094774648]
                 for (let i = 0; i < res.payload.trades.length; i++) {
@@ -830,7 +829,7 @@ async function loadPrintsTicker(onlyDownload = 0) {
 
                 if (onlyDownload) {
                     table = ''
-                    downloadCSV(res.payload.trades)
+                    downloadCSV(res.payload.trades, `${printTicker}_${printDate}`)
                 }
 
                 printsWindow.innerHTML = statBlock + (showed ? table : '');
