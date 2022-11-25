@@ -45,7 +45,7 @@ async function run() {
         document.getElementById("root").classList.add("kvt-compactStyle");
     }
 
-    for (const key of ['kvtFastVolumePrice', 'kvtFastVolumePriceRound', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'rcktMonConnect', 'alorToken', 'hideShortsBrokers', 'debug']) {
+    for (const key of ['kvtFastVolumePrice', 'styleTS', 'kvtFastVolumePriceRound', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'rcktMonConnect', 'alorToken', 'hideShortsBrokers', 'debug']) {
         settings[key] = await getObjectFromLocalStorage(key)
     }
 

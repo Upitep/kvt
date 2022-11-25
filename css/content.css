@@ -623,6 +623,19 @@ span[data-kvt-volume]:hover {
 .kvt-widget-table tr.type-sell td{
     background: #9d2b3840
 }
+.styleTS_mid_brig .kvt-widget-table tr.type-sell td {
+    background: rgba(var(--pro-base-red),0.3);
+}
+.styleTS_mid_brig .kvt-widget-table tr.type-buy td {
+    background: rgba(var(--pro-base-green),0.25)
+}
+.styleTS_max_brig .kvt-widget-table tr.type-sell td {
+    background: var(--pro-orderbook-bid-color)
+}
+.styleTS_max_brig .kvt-widget-table tr.type-buy td {
+    background: var(--pro-orderbook-ask-color)
+}
+
 .kvt-widget-content tr td:first-of-type{
 
 }
