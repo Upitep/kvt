@@ -1005,7 +1005,6 @@ function kvtCreateWidget(widget) {
             if (widgetType === 'spbTS') {
                 if (kvtSettings['styleTS']) {
                     widget.classList.add(`styleTS_${kvtSettings['styleTS']}`)
-                    console.error(kvtSettings['styleTS'])
                 }
 
                 initWidget(widget, widgetType, symbol)
