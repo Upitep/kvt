@@ -262,8 +262,14 @@ label {
 .report_table thead tr{
     background: #eee;
 }
-.open-ticker {
+.yellow-bg {
     background: #fffcd5;
+}
+.blue-bg {
+    background: #d8e6ff;
+}
+.green-bg {
+    background: #d9f4db;
 }
 .note{
     padding: 2px 0;
