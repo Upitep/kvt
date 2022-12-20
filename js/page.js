@@ -28,23 +28,6 @@ let kvtd = false,
         16: "rgb(115, 176, 119)",
     },
     kvtWidgets = {
-        news: {
-            name: 'Новости',
-            icon: '📰',
-            template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Price</th><th>Size</th><th>Vol.</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
-            templateItem: (jd, widgetId) => {
-                let line = document.createElement('tr');
-                line.classList.add(`type-${jd.side}`);
-                line.setAttribute("data-ts-id", jd.id);
-                line.innerHTML = `<td>${jd.price}</td><td>${jd.qty}</td><td>${kvth._ft(jd.qty * jd.price * jd.lotSize)}</td><td>${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`;
-                line.onclick = function() {
-                    kvt.setPrice(widgetId, jd.price)
-                }
-
-                return line;
-            },
-            unsubscribe: unsubscribe_news
-        },
         spbTS: {
             name: 'T&S',
             icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 15C11.866 15 15 11.866 15 8C15 4.134 11.866 1 8 1C4.134 1 1 4.134 1 8C1 11.866 4.134 15 8 15ZM10.6745 9.62376L8.99803 8.43701L8.9829 4.5097C8.98078 3.95742 8.53134 3.51143 7.97906 3.51356C7.42678 3.51568 6.98079 3.96512 6.98292 4.5174L7.00019 9.00001C7.00152 9.34537 7.18096 9.66281 7.47482 9.84425L9.62376 11.3255C10.0937 11.6157 10.7099 11.4699 11 11C11.2901 10.5301 11.1444 9.91391 10.6745 9.62376Z" fill="rgb(var(--pro-icon-color))"></path></svg>',
@@ -471,7 +454,7 @@ class KvaloodTools {
                     val.setAttribute("class", "qt-v")
                 }, 700)
 
-                if (quotes[symb].p >= 0) {
+                if (quotes[symb].p > 0) {
                     percent.setAttribute("class", "qt-p profit");
                     percent.textContent = `(+${quotes[symb].p}%)`;
                 } else {
@@ -673,12 +656,6 @@ function kvtRun() {
                         }
                     }
 
-                    if (window.__kvtNews) {
-                        for (let item of window.__kvtNews) {
-                            unsubscribe_news(item.widgetId)
-                        }
-                    }
-
                     // Удаляем цены для кнопок add_kvtFastVolumePriceButtons
                     kvtPrices = {}
                 }
@@ -712,13 +689,6 @@ function kvt_connect(resubscribe = false) {
             for (let item of window.__kvtTs) {
                 kvtd ?? console.warn('subscribe_TS_5')
                 subscribe_TS(item.widgetId, item.ticker, item.guid)
-            }
-        }
-
-        // Переподписка на News
-        if (window.__kvtNews && resubscribe) {
-            for (let item of window.__kvtNews) {
-                subscribe_news(item.widgetId, item.ticker, item.guid)
             }
         }
 
@@ -1327,54 +1297,5 @@ function subscribe_quotes() {
 
 function getKvtTsByGuid(guid) {
     return window.__kvtTs ? window.__kvtTs.find(item => item.guid === guid) : 0
-}
-
-
-async function subscribe_news(widgetId, ticker, guid = '') {
-    !window.__kvtNews ? window.__kvtNews = [] : 0
-    let obj = {widgetId: widgetId, guid: guid ? guid : kvth.uuidv4(), ticker: ticker}
-
-    window.__kvtNews = window.__kvtNews.filter(i => i.widgetId !== widgetId);
-    window.__kvtNews.push(obj)
-
-    kvtd ?? console.log('[kvt][subscribe_news]', obj.widgetId, obj.ticker)
-    
-    if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-        window.__kvtWS.send(JSON.stringify({
-            user_id: kvtSettings.telegramId,
-            type: 'subscribeTS',
-            ticker: ticker,
-            guid: obj.guid
-        }));
-    } else {
-        if (kvt.getState('kvts') !== 0) {
-            setTimeout(function(){
-                subscribe_TS(widgetId, ticker, obj.guid)
-            }, 700)
-        }
-        kvtd ?? console.log('[kvt][subscribe_news]', 'Не подписался, сокет не готов')
-    }
-}
-
-function unsubscribe_news(widgetId) {
-
-    kvtd ?? console.log('[kvt][unsubscribe_news]', widgetId)
-
-    let obj = window.__kvtNews ? window.__kvtNews.find(item => item.widgetId === widgetId) : 0
-
-    if (obj) {
-        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-            window.__kvtWS.send(JSON.stringify({
-                user_id: kvtSettings.telegramId,
-                type: 'unsubscribeTS',
-                guid: obj.guid
-            }));
-
-            kvtd ?? console.log('[kvt][unsubscribe_news]', 'отписался от ', widgetId)
-        }
-
-        // удалим
-        window.__kvtNews = window.__kvtNews.filter((item) => item.widgetId !== widgetId);
-    }
 }
 
