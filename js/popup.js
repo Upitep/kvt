@@ -56,15 +56,17 @@ async function run() {
         })
     })
 
-    let accounts = await getBrokerAccounts(config.psid)    
-    if (accounts) {
-        let select = document.getElementById('statsFor')
-
-        for (let item of accounts) {
-            let el = document.createElement('option');
-            el.value = item.brokerAccountId;
-            el.innerHTML = item.name || 'Брокерский счёт Тинькофф';
-            select.appendChild(el);
+    if (config !== undefined) {
+        let accounts = await getBrokerAccounts(config.psid || 0)    
+        if (accounts) {
+            let select = document.getElementById('statsFor')
+    
+            for (let item of accounts) {
+                let el = document.createElement('option');
+                el.value = item.brokerAccountId;
+                el.innerHTML = item.name || 'Брокерский счёт Тинькофф';
+                select.appendChild(el);
+            }
         }
     }
 
@@ -334,7 +336,7 @@ async function run() {
                         return false;
                     }
 
-                    table += '<tr' + (e['Количество'] !== 0 ? ' class="open-ticker"' : '') + '>' +
+                    table += '<tr' + (e['Количество'] !== 0 ? ' class="yellow-bg"' : '') + '>' +
                         '<td>' + e['Тикер'] + '</td>' +
                         '<td data-sort="' + kvth._rt(e['Финансовый результат']) + '">' + kvth._style(e['Финансовый результат']) + '</td>' +
                         '<td>' + e['Сделок покупки'] + ' / ' + e['Сделок продажи'] + ' (' + (e['Сделок покупки'] + e['Сделок продажи']) + ')</td>' +
@@ -342,7 +344,7 @@ async function run() {
                         '<td data-sort="' + e['Валюта'] + '">' + kvth._c(e['Валюта']) + '</td>' +
                         '</tr>';
                 });
-                table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="open-ticker">цветом</span></div>';
+                table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span></div>';
 
                 reportWindow.innerHTML += table;
 
@@ -391,10 +393,14 @@ async function run() {
 
                     console.log(e)
 
-                    let operations = ((e.payload || {}).items || []).filter(function (e) {
-                            return ((e || {}).ticker || "").toUpperCase()
-                        }),
+                    let operations = ((e.payload || {}).items || []),
                         result = []
+
+                    /**
+                     * Базовый - ВАЛЮТА
+                     * Структура: 
+                     *  - ВАЛЮТА->ТИКЕР->
+                     */
 
                     if (operations.length) {
 
@@ -405,12 +411,13 @@ async function run() {
 
                             if (e.ticker && e.currency) {
 
-                                let t = e.ticker;
+                                let tc = e.ticker + e.currencies;
 
-                                if (void 0 === tickers[t]) {
+                                if (void 0 === tickers[tc]) {
                                     let ts = {};
-                                    ts["Тикер"] = t;
+                                    ts["Тикер"] = e.ticker;
                                     ts["Валюта"] = e.currency;
+                                    ts["issuer"] = e.issuer;
                                     ts["Комиссия"] = 0;
                                     ts["Финансовый результат"] = 0;
                                     ts["Финансовый результат с учётом комиссии"] = 0;
@@ -423,39 +430,46 @@ async function run() {
                                     ts["Количество"] = 0;
                                     ts["Сумма открытой позы"] = 0;
 
-                                    tickers[t] = ts;
+                                    tickers[tc] = ts;
                                 }
 
                                 if (e.status === "decline") {
-                                    tickers[t]["Отмененных сделок"]++;
+                                    tickers[tc]["Отмененных сделок"]++;
                                 } else if (e.status === "done") {
 
                                     switch (e.operationType) {
                                         case 'Sell' : {
-                                            tickers[t]["Сделок продажи"]++
-                                            tickers[t]["Комиссия"] += Math.abs(e.commission || 0)
-                                            tickers[t]["Сумма продаж"] += Math.abs(e.payment || 0)
-                                            tickers[t]["Количество"] -= (e.quantity || 0);
+                                            tickers[tc]["Сделок продажи"]++
+                                            //tickers[t]["Комиссия"] += Math.abs(e.commission || 0)
+                                            tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
+                                            tickers[tc]["Количество"] -= (e.quantity || 0);
 
-                                            if (tickers[t]["Количество"] === 0) {
-                                                tickers[t]["Сумма открытой позы"] = 0;
+                                            if (tickers[tc]["Количество"] === 0) {
+                                                tickers[tc]["Сумма открытой позы"] = 0;
                                             } else {
-                                                tickers[t]["Сумма открытой позы"] -= Math.abs(e.payment || 0)
+                                                tickers[tc]["Сумма открытой позы"] -= Math.abs(e.payment || 0)
                                             }
                                             break
                                         }
 
                                         case 'Buy' : {
-                                            tickers[t]["Сделок покупки"]++
-                                            tickers[t]["Комиссия"] += Math.abs(e.commission || 0)
-                                            tickers[t]["Сумма покупок"] += Math.abs(e.payment || 0)
-                                            tickers[t]["Количество"] += e.quantity;
+                                            tickers[tc]["Сделок покупки"]++
+                                            //tickers[t]["Комиссия"] += Math.abs(e.commission || 0)
+                                            tickers[tc]["Сумма покупок"] += Math.abs(e.payment || 0)
+                                            tickers[tc]["Количество"] += e.quantity;
 
-                                            if (tickers[t]["Количество"] === 0) {
-                                                tickers[t]["Сумма открытой позы"] = 0;
+                                            if (tickers[tc]["Количество"] === 0) {
+                                                tickers[tc]["Сумма открытой позы"] = 0;
                                             } else {
-                                                tickers[t]["Сумма открытой позы"] += Math.abs(e.payment || 0)
+                                                tickers[tc]["Сумма открытой позы"] += Math.abs(e.payment || 0)
                                             }
+                                            break
+                                        }
+
+                                        // Комиссия брокера
+                                        case 'BrokCom' : {
+                                            tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
+                                            
                                             break
                                         }
 
@@ -470,6 +484,60 @@ async function run() {
 
                                             break
                                         }
+
+                                        // Списание комиссии за непокрытую позицию
+                                        case 'MarginCom' : {
+
+                                            break
+                                        }
+
+                                        // Списание комиссии за следование
+                                        case 'FollowingCom' : {
+
+                                            break
+                                        }
+
+                                        // Списание комиссии за результат
+                                        case 'FollowingResultCom' : {
+
+                                            break
+                                        }
+
+                                        // Выплата купонов по облигациям
+                                        case 'Coupon' : {
+                                            tickers[tc]["Сумма покупок"] = 0;
+                                            tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
+                                            tickers[tc]["НДФЛ"] += Math.abs(e.payment || 0)
+                                            break
+                                        }
+
+                                        // Удержание НДФЛ по купонам
+                                        case 'TaxCpn' : {
+                                            tickers[tc]["НДФЛ"] += Math.abs(e.payment || 0)
+                                            break
+                                        }
+
+                                        // Выплата дивидендов по акциям
+                                        case 'Dividend' : {
+
+                                            break
+                                        }
+
+                                        // Удержание НДФЛ по дивидендам
+                                        case 'TaxDvd' : {
+
+                                            break
+                                        }
+
+                                        case 'PayIn' : {
+
+                                            break
+                                        }
+
+                                        case 'PayOut' : {
+
+                                            break
+                                        }
                                     }
                                 }
                             }
@@ -478,6 +546,8 @@ async function run() {
                         Object.keys(tickers).forEach(function (e) {
                             return result.push(tickers[e])
                         })
+
+                        console.table(result)
 
                         let total = {},
                             currencies = [];
@@ -552,7 +622,7 @@ async function run() {
                                 return false;
                             }
 
-                            table += '<tr' + (e['Количество'] !== 0 ? ' class="open-ticker"' : '') + '>' +
+                            table += '<tr' + (e['Количество'] !== 0 ? ' class="yellow-bg"' : '') + '>' +
                                 '<td>' + e['Тикер'] + '</td>' +
                                 '<td data-sort="' + kvth._rt(e['Финансовый результат с учётом комиссии']) + '">' + kvth._style(e['Финансовый результат с учётом комиссии']) + '</td>' +
                                 '<td data-sort="' + kvth._rt(e['Комиссия']) + '">' + kvth._ft(e['Комиссия']) + '</td>' +
@@ -561,7 +631,7 @@ async function run() {
                                 '<td data-sort="' + e['Валюта'] + '">' + kvth._c(e['Валюта']) + '</td>' +
                                 '</tr>';
                         });
-                        table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="open-ticker">цветом</span></div>';
+                        table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span></div>';
 
                         reportWindow.innerHTML += table;
 
@@ -805,7 +875,7 @@ async function loadPrintsTicker(onlyDownload = 0) {
                 table += '</tbody></table>';
 
                 if (showed === limit_show) {
-                    table = kvth._errW(`В таблице показаны последние ${limit_show} сделок, что бы не грузить ПК`) + table;
+                    table = kvth._errW(`В таблице показаны последние ${limit_show} сделок, чтобы не грузить ПК`) + table;
                 }
 
                 // БЛОК СТАТИСТИКИ
