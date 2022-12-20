@@ -1,6 +1,31 @@
 /**
  * Общие стили
  */
+/* Цвета групп */
+div[style*="color: rgb(163, 129, 255);"]{
+    color: rgb(255 241 0)!important;
+    --pro-widget-header-icon-color-hover: 255, 241, 0 !important;
+}
+div[style*="color: rgb(77, 161, 151);"] {    
+    color: rgb(232 18 36) !important;
+    --pro-widget-header-icon-color-hover: 232, 18, 36 !important;
+}
+
+div[style="color: rgb(248, 163, 77);"] {
+    color: rgb(136 108 228) !important;
+    --pro-widget-header-icon-color-hover: 136, 108, 228 !important;
+}
+
+div[style="color: rgb(238, 128, 93);"] {
+    color: rgb(0 120 215) !important;
+    --pro-widget-header-icon-color-hover: 0, 120, 215 !important;
+}
+
+div[style="color: rgb(124, 174, 255);"] {
+    color: rgb(22 198 12) !important;
+    --pro-widget-header-icon-color-hover: 22, 198, 12 !important;
+}
+
 /*быстрый переход к окну заявки по группам*/
 .kvt-stigButtons {
     display: flex;
