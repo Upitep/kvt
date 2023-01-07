@@ -123,6 +123,10 @@ async function run() {
         document.getElementById('customNameQuotes').dispatchEvent(event);
     }
 
+    if (kvtSettings.alorPortfolio) {
+        document.getElementById('statsFor').insertAdjacentHTML('beforeend', '<option value="alor">Alor</option>');
+    }
+
     // Кнопка загрузить отчет
     document.getElementById('kvShowReport').addEventListener('click', async function (e) {
         let reportWindow = document.getElementById('reportWindow'),
@@ -383,7 +387,7 @@ async function run() {
                 if (kvtSettings.statsFor) {
                     reqBody.brokerAccountId = kvtSettings.statsFor
                 }
-                
+              
                 await fetch(`https://api-invest.tinkoff.ru/trading/user/operations?appName=invest_terminal&appVersion=${config.versionApi}&sessionId=${config.psid}`, {
                     method: "POST",
                     body: JSON.stringify(reqBody)
@@ -407,31 +411,35 @@ async function run() {
                         let tickers = {},
                             operationsReversed = operations.reverse();
 
+                        function nl(tc, e, type = 'trade') {
+                            if (void 0 === tickers[tc]) {
+                                let ts = {};
+                                ts["type"] = type;
+                                ts["Тикер"] = e.ticker;
+                                ts["Валюта"] = e.currency;
+                                ts["issuer"] = e.issuer;
+                                ts["Комиссия"] = 0;
+                                ts["Финансовый результат"] = 0;
+                                ts["Финансовый результат с учётом комиссии"] = 0;
+                                ts["Сумма покупок"] = 0;
+                                ts["Сумма продаж"] = 0;
+                                ts["Сделок покупки"] = 0;
+                                ts["Сделок продажи"] = 0;
+                                ts["Совершенных сделок"] = 0;
+                                ts["Отмененных сделок"] = 0;
+                                ts["Количество"] = 0;
+                                ts["Сумма открытой позы"] = 0;
+
+                                tickers[tc] = ts;
+                            }
+                        }
+
                         operationsReversed.forEach(function (e) {
 
                             if (e.ticker && e.currency) {
 
                                 let tc = e.ticker + e.currencies;
-
-                                if (void 0 === tickers[tc]) {
-                                    let ts = {};
-                                    ts["Тикер"] = e.ticker;
-                                    ts["Валюта"] = e.currency;
-                                    ts["issuer"] = e.issuer;
-                                    ts["Комиссия"] = 0;
-                                    ts["Финансовый результат"] = 0;
-                                    ts["Финансовый результат с учётом комиссии"] = 0;
-                                    ts["Сумма покупок"] = 0;
-                                    ts["Сумма продаж"] = 0;
-                                    ts["Сделок покупки"] = 0;
-                                    ts["Сделок продажи"] = 0;
-                                    ts["Совершенных сделок"] = 0;
-                                    ts["Отмененных сделок"] = 0;
-                                    ts["Количество"] = 0;
-                                    ts["Сумма открытой позы"] = 0;
-
-                                    tickers[tc] = ts;
-                                }
+                                nl(tc, e)
 
                                 if (e.status === "decline") {
                                     tickers[tc]["Отмененных сделок"]++;
@@ -505,27 +513,33 @@ async function run() {
 
                                         // Выплата купонов по облигациям
                                         case 'Coupon' : {
+                                            nl(tc+="Coupon", e, 'coupon');
+
                                             tickers[tc]["Сумма покупок"] = 0;
                                             tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
-                                            tickers[tc]["НДФЛ"] += Math.abs(e.payment || 0)
                                             break
                                         }
 
                                         // Удержание НДФЛ по купонам
                                         case 'TaxCpn' : {
-                                            tickers[tc]["НДФЛ"] += Math.abs(e.payment || 0)
+                                            nl(tc+="Coupon", e, 'coupon');
+                                            tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
                                             break
                                         }
 
                                         // Выплата дивидендов по акциям
                                         case 'Dividend' : {
+                                            nl(tc+="Dividend", e, 'Dividend');
 
+                                            tickers[tc]["Сумма покупок"] = 0;
+                                            tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
                                             break
                                         }
 
                                         // Удержание НДФЛ по дивидендам
                                         case 'TaxDvd' : {
-
+                                            nl(tc+="Dividend", e, 'Dividend');
+                                            tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
                                             break
                                         }
 
@@ -562,7 +576,9 @@ async function run() {
                                     sellCount: 0,
                                     declineCount: 0,
                                     buySum: 0,
-                                    sellSum: 0
+                                    sellSum: 0,
+                                    dividend: 0,
+                                    coupon: 0
                                 }
                             }
                             if (e["Количество"] > 0) {
@@ -770,6 +786,28 @@ async function run() {
             });
         })
     })
+
+    // загрузить группы тикеров
+    document.getElementById('kvDownloadGroupsTicker').addEventListener('click', async function (e) {
+        let result = [];
+        
+        await fetch("https://www.tinkoff.ru/api/invest/favorites/groups/list?appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {})
+            .then(res => res.json())
+            .then(res => {
+                res.payload.groups.forEach(async s => {
+                    await fetch("https://www.tinkoff.ru/api/invest/favorites/groups/instruments/get?tag=All&sortType=Custom&groupId=" + s.id + "&limit=1000&offset=0&appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid)
+                    .then(res => res.json())
+                    .then(e => {                        
+                        let tickers = []
+                        e.payload.instruments.map(item => tickers.push(item.ticker) && item.ticker);
+                        result.push({id: s.id, name: s.name, tickers: tickers})
+                    })
+                })
+            })
+
+        console.log('result', result)
+        
+    });
 
 
     /**

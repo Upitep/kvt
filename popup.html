@@ -34,7 +34,6 @@
 				<div class="form-group col-2">
 					<select id="statsFor" class="form-control" style="width: 70px;" title="Выберите счёт по которому хотите загрузить статистику">
 						<option value="">--ти--</option>
-						<option value="alor">Alor</option>
 					</select>
 				</div>
 				<div class="col-2">
@@ -79,6 +78,7 @@
 		<div id="tickers" class="b-tab">
 			<div class="form-group">
 				<button id="kvLoadGroupsTicker" class="btn">Загрузить группы и тикеры</button>
+				<!-- <button id="kvDownloadGroupsTicker" class="btn">Экспорт в *.json</button> -->
 			</div>
 			
 			<div id="tickersWindow" class="d-none">
@@ -231,8 +231,8 @@
 					<div class="form-text">Токен получать тут - <b>https://alor.dev/open-api-tokens</b></div>
 				</div>
 				<div class="col-6">
-					<label for="alorPortfolio" class="form-label">Алор портфель</label>
-					<input type="text" name="alorPortfolio" id="alorPortfolio" class="form-control" placeholder="Портфель фондового рынка (DXXXXX)">
+					<label for="alorPortfolio" class="form-label">Портфель фондового рынка</label>
+					<input type="text" name="alorPortfolio" id="alorPortfolio" class="form-control" placeholder="DXXXXX">
 					<div class="form-text">Необходим для выгрузки истории сделок</div>
 				</div>
 			</div>

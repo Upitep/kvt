@@ -31,10 +31,10 @@ function kvtIsTokenExpired(token) {
     return true;
 }
 
-async function kvtAlorGetStatsToday(portfolio) {
-    await kvtSyncAlorAccessToken()
+async function kvtAlorGetInfoSymbol(symbol, exchange = 'SPBX') {
+    await kvtSyncAlorAccessToken()    
 
-    return await fetch(`https://api.alor.ru/md/v2/Clients/SPBX/${portfolio}/trades`, {
+    return await fetch(`https://api.alor.ru/md/v2/Securities/${exchange}/${symbol}`, {
         headers: {
             'Authorization': 'Bearer ' + kvtAlorJWT
         }
@@ -49,11 +49,29 @@ async function kvtAlorGetStatsToday(portfolio) {
     })
 }
 
-async function kvtAlorGetStatsHistory(portfolio, dateFrom, tradeNumFrom, dateTo) {
+async function kvtAlorGetStatsToday(portfolio, exchange = 'SPBX') {
+    await kvtSyncAlorAccessToken()
+
+    return await fetch(`https://api.alor.ru/md/v2/Clients/${exchange}/${portfolio}/trades`, {
+        headers: {
+            'Authorization': 'Bearer ' + kvtAlorJWT
+        }
+    }).then(e => {
+        if (e.ok === true && e.status === 200) {
+            return e.json()
+        } else {
+            throw e
+        }
+    }).catch(err => {
+        return {result: 'error', status: err.status + ' ' + err.statusText};
+    })
+}
+
+async function kvtAlorGetStatsHistory(portfolio, dateFrom, tradeNumFrom, dateTo, exchange = 'SPBX') {
 
     await kvtSyncAlorAccessToken()
 
-    const url = new URL(`https://api.alor.ru/md/stats/SPBX/${portfolio}/history/trades`);
+    const url = new URL(`https://api.alor.ru/md/stats/${exchange}/${portfolio}/history/trades`);
 
     if (dateFrom) {
         url.searchParams.append("dateFrom", dateFrom);
