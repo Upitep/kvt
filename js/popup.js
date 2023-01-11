@@ -124,7 +124,7 @@ async function run() {
     }
 
     if (kvtSettings.alorPortfolio) {
-        document.getElementById('statsFor').insertAdjacentHTML('beforeend', '<option value="alor">Alor</option>');
+        document.getElementById('statsFor').insertAdjacentHTML('beforeend', `<option value="alor" ${kvtSettings.statsFor === 'alor' ? 'selected' : ''}>Alor</option>`);
     }
 
     // Кнопка загрузить отчет
@@ -157,7 +157,6 @@ async function run() {
 
                 console.log('сегодняшние', operationsToday)
                 console.log('operationsHistory', operationsHistory)
-                //console.log(df)
 
                 if (operationsToday.result === 'error') {
                     throw new Error(operationsToday.status)
@@ -190,13 +189,7 @@ async function run() {
                 console.log('Загружено', alor_operations.length)
                 console.log('Сегодняшних', operationsToday.length)
 
-                alor_operations.push(...operationsToday)
-
-                alor_operations = alor_operations.filter(i => {
-                    console.log(new Date(i.date).getTime() > alorTime)
-                    return new Date(i.date).getTime() > alorTime
-                })
-
+                alor_operations.push(...operationsToday)                
 
                 // alor_operations.splice(0, 1);
                 //console.table(alor_operations)
@@ -232,18 +225,20 @@ async function run() {
                     }
                 }*/
 
+                reportWindow.innerHTML = 'Обработка...';
+
                 alor_operations.reverse()
 
                 alor_operations.forEach(function (e) {
 
-                    if (e.symbol && e.qty) {
+                    if (e.symbol && e.qty && new Date(e.date).getTime() > alorTime) {
 
                         let t = e.symbol;
 
                         if (void 0 === tickers[t]) {
                             let ts = {};
                             ts["Тикер"] = t;
-                            ts["Валюта"] = 'USD';
+                            ts["Валюта"] = '';
                             ts["Сумма покупок"] = 0;
                             ts["Сумма продаж"] = 0;
                             ts["Сделок покупки"] = 0;
@@ -251,6 +246,7 @@ async function run() {
                             ts["Финансовый результат"] = 0;
                             ts["Количество"] = 0;
                             ts["Сумма открытой позы"] = 0;
+                            ts["exchange"] = e.exchange;
 
                             tickers[t] = ts;
                         }
@@ -275,6 +271,16 @@ async function run() {
 
                 let total = {},
                     currencies = [];
+
+                reportWindow.innerHTML = 'Запрашиваем валюты тикеров...';
+
+                // Запросим инфу по тикерам, что бы узнать валюту
+                for (let i = 0; i < result.length; i++) {
+                    let res = await kvtAlorGetInfoSymbol(result[i]['Тикер'], result[i]['exchange']);
+                    result[i]['Валюта'] = res.currency || 'USD';
+                }
+
+                reportWindow.innerHTML = 'Итоговая обработка...';
 
                 result.forEach(function (e) {
 
@@ -387,7 +393,30 @@ async function run() {
                 if (kvtSettings.statsFor) {
                     reqBody.brokerAccountId = kvtSettings.statsFor
                 }
-              
+
+
+                /* let reqUrl = '';
+                if (kvtSettings.statsFor) {
+                    reqUrl += `&brokerAccountId=${kvtSettings.statsFor}`
+                }
+                if (cursor) {
+                    reqUrl += `&cursor=${cursor}`
+                }
+
+                await fetch(`https://api-invest-gw.tinkoff.ru/ca-operations/api/v1/user/operations?overnightsDisabled=false&withoutCommissions=false&status=executed&limit=100&appName=invest_terminal&sessionId=${config.psid}${reqUrl}`, {
+                    method: "GET",
+                    headers: {
+                        "x-app-version": "​2.0.0"
+                    }
+                }).then(function (e) {
+                    return e.json();
+                }).then(function (e) {
+                    let operations = e.items || [],
+                        nextCursor = e.nextCursor;
+                })
+ */
+                
+                
                 await fetch(`https://api-invest.tinkoff.ru/trading/user/operations?appName=invest_terminal&appVersion=${config.versionApi}&sessionId=${config.psid}`, {
                     method: "POST",
                     body: JSON.stringify(reqBody)
@@ -647,7 +676,7 @@ async function run() {
                                 '<td data-sort="' + e['Валюта'] + '">' + kvth._c(e['Валюта']) + '</td>' +
                                 '</tr>';
                         });
-                        table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span></div>';
+                        table += '</tbody></table><div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span><br>* результат по фьючерсам не учитывается в результате, и отображается как "вариакционная маржа"</div>';
 
                         reportWindow.innerHTML += table;
 
@@ -788,7 +817,7 @@ async function run() {
     })
 
     // загрузить группы тикеров
-    document.getElementById('kvDownloadGroupsTicker').addEventListener('click', async function (e) {
+    /* document.getElementById('kvDownloadGroupsTicker').addEventListener('click', async function (e) {
         let result = [];
         
         await fetch("https://www.tinkoff.ru/api/invest/favorites/groups/list?appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {})
@@ -807,7 +836,7 @@ async function run() {
 
         console.log('result', result)
         
-    });
+    }); */
 
 
     /**

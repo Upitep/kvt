@@ -48,7 +48,7 @@ class kvtHelper {
 
     _c(currency) {
         let symbols = {
-            'USD': '$', 'RUB': '₽', 'EUR': '€'
+            'USD': '$', 'RUB': '₽', 'EUR': '€', 'HKD': 'HK$'
         };
 
         return symbols[currency] || currency;

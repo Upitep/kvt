@@ -127,18 +127,18 @@
 
 			<hr/>
 			
-			<h3>⚠️ Для использования данных зарегистрируйтесь в t.me/kvtsbot</h3>
+			<h3 class="mb-2">⚠️ Подключение к kvts. Регистрация в t.me/kvtsbot</h3>
 
-			<div class="form-group row g-2">				
-				<div class="col-6">
-					<label for="kvtToken" class="form-label">Токен для подключения к kvts</label>
-					<input type="text" name="kvtToken" id="kvtToken" class="form-control" placeholder="">
-					<div class="form-text">Для получения ленты принтов (T&S) и других данных</div>
-				</div>
-				<div class="col-6">
+			<p class="mt-1 mb-2">Для получения ленты принтов (T&S) и других данных</p>
+
+			<div class="form-group row g-2">
+				<div class="col-5">
 					<label for="telegramId" class="form-label">Телеграм ID</label>
 					<input type="text" name="telegramId" id="telegramId" class="form-control" placeholder="123456789">
-					<div class="form-text">Для приватных инструментов</div>
+				</div>
+				<div class="col-7">
+					<label for="kvtToken" class="form-label">Токен для подключения к kvts</label>
+					<input type="text" name="kvtToken" id="kvtToken" class="form-control" placeholder="">
 				</div>
 			</div>
 
@@ -225,15 +225,15 @@
 			<h3>💰 Фин. рез. Алор</h3>
 
 			<div class="form-group row g-2">				
-				<div class="col-6">
+				<div class="col-7">
 					<label for="alorToken" class="form-label">Алор токен</label>
 					<input type="text" name="alorToken" id="alorToken" class="form-control">
-					<div class="form-text">Токен получать тут - <b>https://alor.dev/open-api-tokens</b></div>
+					<div class="form-text">см. тут - <b>https://alor.dev/open-api-tokens</b></div>
 				</div>
-				<div class="col-6">
+				<div class="col-5">
 					<label for="alorPortfolio" class="form-label">Портфель фондового рынка</label>
 					<input type="text" name="alorPortfolio" id="alorPortfolio" class="form-control" placeholder="DXXXXX">
-					<div class="form-text">Необходим для выгрузки истории сделок</div>
+					<div class="form-text">для выгрузки истории сделок</div>
 				</div>
 			</div>
 			
