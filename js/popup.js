@@ -39,7 +39,7 @@ const sendMessagePromise = async function (tabId, tp) {
             if (response && response.msg === tp) {
                 resolve(response)
             } else {
-                reject('Не удалось загрузить config psid. Зайдите на страницу терминала или обновите её.')
+                reject('Не удалось загрузить config psid. Расширение работает только на странице терминала! Зайдите в терминал или обновите страницу терминала.')
             }
         });
     });
@@ -54,6 +54,8 @@ async function run() {
             type: "basic",
             iconUrl: "icons/icon48.png"
         })
+
+        document.querySelector('body').innerHTML = `<div class="content-tabs">${kvth._errW(err)}</div>`;
     })
 
     if (config !== undefined) {
@@ -274,9 +276,12 @@ async function run() {
 
                 reportWindow.innerHTML = 'Запрашиваем валюты тикеров...';
 
-                // Запросим инфу по тикерам, что бы узнать валюту
+                // Запросим инфу по тикерам, что бы узнать валюту и лотность
                 for (let i = 0; i < result.length; i++) {
                     let res = await kvtAlorGetInfoSymbol(result[i]['Тикер'], result[i]['exchange']);
+
+                    result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
+                    result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
                     result[i]['Валюта'] = res.currency || 'USD';
                 }
 
