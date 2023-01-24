@@ -206,7 +206,7 @@ span[data-kvt-volume]:hover {
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-footer-] {
-    padding: 0 4px 0 !important;
+    padding: 0 4px 6px 0 !important;
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-footer-]:after{
@@ -492,14 +492,21 @@ span[data-kvt-volume]:hover {
  * Бумага доступнна в шорт у брокеров
  */
 .kvt-shortsBrokers{
+    padding: 12px 10px;
     z-index: 1;
     display: flex;
-    gap: 5px;
-    padding: 0 5px;
     align-items: center;
-    background: rgba(var(--pro-base-02),1);
-    height: 20px;
     font-size: 12px;
+    gap: 5px;
+    background: rgba(var(--pro-base-02),1);
+    border-radius: 8px;
+    margin: 12px;
+}
+
+.kvt-compactStyle .kvt-shortsBrokers {
+    padding: 2px 3px;
+    margin: 0;
+    border-radius: 0;
 }
 
 /**

@@ -454,7 +454,7 @@ class KvaloodTools {
                     val.setAttribute("class", "qt-v")
                 }, 700)
 
-                if (quotes[symb].p > 0) {
+                if (quotes[symb].p >= 0) {
                     percent.setAttribute("class", "qt-p profit");
                     percent.textContent = `(+${quotes[symb].p}%)`;
                 } else {
@@ -737,11 +737,11 @@ function kvt_connect(resubscribe = false) {
                         }
 
                         if (msg.data.noSync) {
-                            !titleBlock.querySelector('.noSync') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="noSync" title="Акция без синхронизации с США">⛔️</span>') : '';                          
+                            !titleBlock.querySelector('.noSync') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="noSync" title="Возможно акция без синхронизации с США">⛔️</span>') : '';                          
                         }
 
                         if (msg.data.blockQ) {
-                            !titleBlock.querySelector('.blockQ') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="blockQ" title="Нельзя сдать в Q, поломана синхронизация с США">🆘</span>') : '';                          
+                            !titleBlock.querySelector('.blockQ') ? titleBlock.insertAdjacentHTML('afterbegin', '<span class="blockQ" title="Возможно поломанна синхронизация с США. Нельзя сдать в Q">🆘</span>') : '';                          
                         }
                     }
 

@@ -33,7 +33,7 @@
 				</div>				
 				<div class="form-group col-2">
 					<select id="statsFor" class="form-control" style="width: 70px;" title="Выберите счёт по которому хотите загрузить статистику">
-						<option value="">--ти--</option>
+						<!-- // DEL <option value="tinkoff">--ти--</option>  -->
 					</select>
 				</div>
 				<div class="col-2">
@@ -45,6 +45,10 @@
 				<button class="btn btn-sm btn-secondary" data-set-time="from_morning">с утра</button>
 				<button class="btn btn-sm btn-secondary" data-set-time="from_week">c начала недели</button>
 				<button class="btn btn-sm btn-secondary" data-set-time="from_mount">с начала месяца</button>
+				<div class="form-check">
+					<input type="checkbox" name="oldStats" id="oldStats" class="form-check-input">
+					<label for="oldStats" title="Загрузка сделок через старый метод.">old method</label>
+				</div>
 			</div>
 			
 			<div id="reportWindow"></div>

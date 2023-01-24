@@ -221,12 +221,28 @@ label {
 }
 .top-table{
     display: flex;
+    gap: 12px 14px;
+    flex-wrap: wrap;
     padding: 0 0 10px;
-    margin-left: -7px;
 }
-.top-table div{
+.top-table ul{
     flex: 0 0 auto;
-    padding: 0 7px;
+    margin: 0;
+    padding: 0;
+}
+.top-table ul li{
+    list-style: none;
+}
+.top-table ul li .hidden{
+    display: none;
+    padding: 0 0 5px 0px;
+}
+.top-table ul li .hidden span{
+    color: #ff4e00;
+}
+.btnShowMore{
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 #reports input[type="datetime-local"] {
@@ -267,6 +283,9 @@ label {
 }
 .blue-bg {
     background: #d8e6ff;
+}
+.purple-bg {
+    background-color: #fed8ff;
 }
 .green-bg {
     background: #d9f4db;
