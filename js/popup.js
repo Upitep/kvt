@@ -73,7 +73,7 @@ async function run() {
     }
 
     // input & checkbox set&get settings
-    for (const key of ['fromDate', 'toDate', 'oldStats', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'styleTS', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'styleTS', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -243,11 +243,11 @@ async function run() {
 
                     if (e.symbol && e.qty && d >= fromDateTime && d <= toDateTime ) {
 
-                        let t = e.symbol;
+                        let tkr = e.symbol;
 
-                        if (void 0 === tickers[t]) {
+                        if (void 0 === tickers[tkr]) {
                             let ts = {};
-                            ts["Тикер"] = t;
+                            ts["Тикер"] = tkr;
                             ts["Валюта"] = '';
                             ts["Сумма покупок"] = 0;
                             ts["Сумма продаж"] = 0;
@@ -259,17 +259,30 @@ async function run() {
                             ts["Комиссия"] = 0;
                             ts["exchange"] = e.exchange;
 
-                            tickers[t] = ts;
+                            tickers[tkr] = ts;
                         }
 
                         if (e.side === "sell") {
-                            tickers[t]["Сделок продажи"]++
-                            tickers[t]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[t]["Количество"] -= (e.qty || 0);
+                            tickers[tkr]["Сделок продажи"]++
+                            tickers[tkr]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[tkr]["Количество"] -= (e.qty || 0);
+
+                            if (tickers[tkr]["Количество"] === 0) {
+                                tickers[tkr]["Сумма открытой позы"] = 0;
+                            } else {
+                                tickers[tkr]["Сумма открытой позы"] -= Math.abs((e.price * e.qty) || 0)
+                            }
+
                         } else if (e.side === "buy") {
-                            tickers[t]["Сделок покупки"]++
-                            tickers[t]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[t]["Количество"] += e.qty;
+                            tickers[tkr]["Сделок покупки"]++
+                            tickers[tkr]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[tkr]["Количество"] += e.qty;
+
+                            if (tickers[tkr]["Количество"] === 0) {
+                                tickers[tkr]["Сумма открытой позы"] = 0;
+                            } else {
+                                tickers[tkr]["Сумма открытой позы"] += Math.abs((e.price * e.qty) || 0)
+                            }
                         }
                     }
                 })
@@ -286,7 +299,9 @@ async function run() {
 
                     result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
                     result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
+                    result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
                     result[i]['Валюта'] = res.currency || 'USD';
+                    currs(res.currency)
                 }
 
                 reportWindow.innerHTML = 'Итоговая обработка...';
@@ -300,182 +315,6 @@ async function run() {
                     iconUrl: "icons/icon48.png"
                 })
             }
-        } else if (kvtSettings.oldStats) {
-            if (config !== undefined) {
-                let reqBody = {to: toDate, from: fromDate, overnightsDisabled: !0}
-
-                if (kvtSettings.statsFor) {
-                    reqBody.brokerAccountId = kvtSettings.statsFor
-                }                
-                
-                await fetch(`https://api-invest.tinkoff.ru/trading/user/operations?appName=invest_terminal&appVersion=${config.versionApi}&sessionId=${config.psid}`, {
-                    method: "POST",
-                    body: JSON.stringify(reqBody)
-                }).then(function (e) {
-                    return e.json();
-                }).then(function (e) {
-
-                    console.log(e)
-
-                    let operations = ((e.payload || {}).items || []);
-
-                    /**
-                     * Базовый - ВАЛЮТА
-                     * Структура: 
-                     *  - ВАЛЮТА->ТИКЕР->
-                     */
-
-                    if (operations.length) {
-
-                        let operationsReversed = operations.reverse();
-
-                        operationsReversed.forEach(function (e) {
-
-                            if (e.ticker && e.currency && e.status === "done") {
-
-                                let tc = `${e.ticker}_${e.currency}`;
-
-                                switch (e.operationType) {
-                                    case 'Sell' : {
-                                        nl(tc, e)
-                                        tickers[tc]["Сделок продажи"]++;
-                                        tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
-                                        tickers[tc]["Количество"] -= (e.quantity || 0);
-
-                                        if (tickers[tc]["Количество"] === 0) {
-                                            tickers[tc]["Сумма открытой позы"] = 0;
-                                        } else {
-                                            tickers[tc]["Сумма открытой позы"] -= Math.abs(e.payment || 0)
-                                        }
-                                        break
-                                    }
-
-                                    case 'Buy' : {
-                                        nl(tc, e)
-                                        tickers[tc]["Сделок покупки"]++;
-                                        tickers[tc]["Сумма покупок"] += Math.abs(e.payment || 0)
-                                        tickers[tc]["Количество"] += e.quantity;
-
-                                        if (tickers[tc]["Количество"] === 0) {
-                                            tickers[tc]["Сумма открытой позы"] = 0;
-                                        } else {
-                                            tickers[tc]["Сумма открытой позы"] += Math.abs(e.payment || 0)
-                                        }
-                                        break
-                                    }
-
-                                    // Комиссия брокера
-                                    case 'BrokCom' : {
-                                        nl(tc, e)
-                                        tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
-                                        
-                                        break
-                                    }
-
-                                    // Начисление вариационной маржи
-                                    case 'AccruingVarMargin' : {
-
-                                        break
-                                    }
-
-                                    // Списание вариационной маржи
-                                    case 'WriteOffVarMargin' : {
-
-                                        break
-                                    }
-
-                                    // Списание комиссии за непокрытую позицию
-                                    case 'MarginCom' : {
-
-                                        break
-                                    }
-
-                                    // Списание комиссии за следование
-                                    case 'FollowingCom' : {
-
-                                        break
-                                    }
-
-                                    // Списание комиссии за результат
-                                    case 'FollowingResultCom' : {
-
-                                        break
-                                    }
-
-                                    // Выплата купонов по облигациям
-                                    case 'Coupon' : {
-                                        nl(tc+="_Coupon", e, 'coupon');
-
-                                        tickers[tc]["Сумма покупок"] = 0;
-                                        tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
-                                        break
-                                    }
-
-                                    // Удержание НДФЛ по купонам
-                                    case 'TaxCpn' : {
-
-                                        nl(tc+="_Coupon", e, 'coupon');
-                                        console.log(tc)
-                                        tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
-                                        break
-                                    }
-
-                                    // Выплата дивидендов по акциям
-                                    case 'Dividend' : {
-                                        nl(tc+="Dividend", e, 'Dividend');
-
-                                        tickers[tc]["Сумма покупок"] = 0;
-                                        tickers[tc]["Сумма продаж"] += Math.abs(e.payment || 0)
-                                        break
-                                    }
-
-                                    // Удержание НДФЛ по дивидендам
-                                    case 'TaxDvd' : {
-                                        nl(tc+="Dividend", e, 'Dividend');
-                                        tickers[tc]["Комиссия"] += Math.abs(e.payment || 0)
-                                        break
-                                    }
-
-                                    case 'PayIn' : {
-
-                                        break
-                                    }
-
-                                    case 'PayOut' : {
-
-                                        break
-                                    }
-                                }
-                            }
-                        })
-
-                        Object.keys(tickers).forEach(function (e) {
-                            return result.push(tickers[e])
-                        })
-                        
-                    } else {
-                        reportWindow.innerHTML = 'Нет сделок за выбранный период или ТИ вернул фигу';
-                    }
-                }).catch(function (error) {
-                    reportWindow.innerHTML = '';
-                    console.error(error)
-                    chrome.notifications.create("", {
-                        title: "Финансовый результат",
-                        message: "Не удалось загрузить",
-                        type: "basic",
-                        iconUrl: "icons/icon48.png"
-                    })
-                });
-            } else {
-                reportWindow.innerHTML = kvth._errW('Не удалось загрузить config. Обновите страницу терминала.');
-                chrome.notifications.create("", {
-                    title: "Финансовый результат",
-                    message: "Не удалось загрузить config. Обновите страницу терминала.",
-                    type: "basic",
-                    iconUrl: "icons/icon48.png"
-                })
-            }
-            
         } else {
             try {
                 if (config === undefined) {
