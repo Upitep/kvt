@@ -73,7 +73,7 @@ async function run() {
     }
 
     // input & checkbox set&get settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'styleTS', 'showNullOperation', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'styleTS', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -253,7 +253,6 @@ async function run() {
                             ts["Сумма продаж"] = 0;
                             ts["Сделок покупки"] = 0;
                             ts["Сделок продажи"] = 0;
-                            ts["Финансовый результат"] = 0;
                             ts["Количество"] = 0;
                             ts["Сумма открытой позы"] = 0;
                             ts["Комиссия"] = 0;
@@ -602,7 +601,6 @@ async function run() {
                 //}
 
                 ts["Комиссия"] = 0;
-                ts["Финансовый результат"] = 0; // DEL
                 ts["Сумма покупок"] = 0;
                 ts["Сумма продаж"] = 0;
                 ts["Сделок покупки"] = 0;
@@ -755,10 +753,6 @@ async function run() {
                 '</tr></thead><tbody>';
 
             res.forEach(function (e) {
-                if (!kvtSettings.showNullOperation && e["Финансовый результат"] === 0/* || e['Сумма открытой позы']*/) {
-                    return false;
-                }
-
                 let profit = e["Сумма продаж"] - e["Сумма покупок"] - e["Комиссия"]
 
                 table += '<tr' + (e['Количество'] !== 0 ? ' class="yellow-bg"' : '') + '>' +
