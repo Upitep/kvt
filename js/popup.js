@@ -369,6 +369,7 @@ async function run() {
 
                     switch (e.type) {
                         case 'sell' : {
+                            currs(c)
                             if (e.instrumentType !== 'futures') {
                                 nl(tc, e)
                                 tickers[tc]["Сделок продажи"]++;
@@ -385,6 +386,7 @@ async function run() {
                         }
 
                         case 'buy' : {
+                            currs(c)
                             if (e.instrumentType !== 'futures') {
                                 nl(tc, e)
                                 tickers[tc]["Сделок покупки"]++;
