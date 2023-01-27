@@ -537,6 +537,13 @@ async function run() {
                             break
                         }
 
+                        // Комиссия за валютный остаток
+                        case 'cashCom' : {
+                            currs(c)
+                            corrss[c]['Валютный остаток'] += Math.abs(e.payment.value || 0)
+                            break
+                        }
+
                         case 'payIn' : {
 
                             break
@@ -640,7 +647,8 @@ async function run() {
                     "Автоследование рез.": 0, // followingResultCom                    
                     "Дивиденды налог": 0, // taxDvd                    
                     "Купоны налог": 0, // taxCpn
-                    "Обслуживание": 0, // regCom                    
+                    "Обслуживание": 0, // regCom  
+                    "Валютный остаток": 0, // cashCom             
                     "Гербовый сбор": 0 // stampDuty
                 };                
 
@@ -672,8 +680,8 @@ async function run() {
 
                 let e = corrss[i],
                     currency = kvth._c(i),
-                    otherComm = e['НДФЛ'] + e['НДФЛ 15%'] + e['Маржиналка'] + e['Автоследование'] + e['Автоследование рез.'] + e['Дивиденды налог'] + e['Купоны налог'] + e['Обслуживание'] + e['Гербовый сбор'],
-                    profit = e['Чистыми'] - otherComm + e['Маржа'];        
+                    otherComm = e['НДФЛ'] + e['НДФЛ 15%'] + e['Маржиналка'] + e['Автоследование'] + e['Автоследование рез.'] + e['Дивиденды налог'] + e['Купоны налог'] + e['Обслуживание'] + e['Валютный остаток'] + e['Гербовый сбор'],
+                    profit = e['Чистыми'] - (e['НДФЛ'] + e['НДФЛ 15%'] + e['Маржиналка'] + e['Автоследование'] + e['Автоследование рез.'] + e['Обслуживание'] + e['Валютный остаток'] + e['Гербовый сбор']) + e['Маржа'];
 
                 topTable += `<ul>`
                 topTable += `<li><span>Чистыми:</span> ${kvth._ft(profit)} ${currency}</li>`
@@ -682,10 +690,10 @@ async function run() {
                     topTable += `<li><span title="Вариационная маржа">Маржа:</span> ${kvth._ft(e['Маржа'])} ${currency}</li>`
                 }
                 if (e['Дивиденды']) {
-                    topTable += `<li><span class="purple-bg">Дивиденды:</span> ${kvth._ft(e['Дивиденды'])} ${currency}</li>`
+                    topTable += `<li><span class="purple-bg">Дивиденды:</span> ${kvth._ft(e['Дивиденды']-e['Дивиденды налог'])} ${currency}</li>`
                 }
                 if (e['Купоны']) {
-                    topTable += `<li><span class="blue-bg">Купоны:</span> ${kvth._ft(e['Купоны'])} ${currency}</li>`
+                    topTable += `<li><span class="blue-bg">Купоны:</span> ${kvth._ft(e['Купоны']-e['Купоны налог'])} ${currency}</li>`
                 }
                 if (e['Комиссия']) {
                     topTable += `<li>Комиссия:</span> ${kvth._ft(e['Комиссия'])} ${currency}</li>`
@@ -717,6 +725,9 @@ async function run() {
                     }
                     if (e['Обслуживание']) {
                         topTable += `<span title="Списание комиссии за обслуживание">Обслуживание:</span> ${kvth._ft(e['Обслуживание'])} ${currency}<br/>`
+                    }
+                    if (e['Валютный остаток']) {
+                        topTable += `<span title="Комиссия за валютный остаток">Валютный остаток:</span> ${kvth._ft(e['Валютный остаток'])} ${currency}<br/>`
                     }
                     if (e['Гербовый сбор']) {
                         topTable += `<span>Гербовый сбор:</span> ${kvth._ft(e['Гербовый сбор'])} ${currency}`
