@@ -173,6 +173,13 @@ span[data-kvt-volume]:hover {
 }
 
 
+/**
+* Табы вкладок в шапке
+*/
+.kvt-compactStyle .pro-editable-tab{
+    padding: 4px 8px;
+}
+
 
 /**
  * Заявка
@@ -188,6 +195,9 @@ span[data-kvt-volume]:hover {
 }
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-scrollContent-] {
     padding: 0 3px;
+}
+.kvt-compactStyle [class*="src-modules-CombinedOrder-components-OrderBody-OrderBody-scrollContent-"] > div:last-child {
+    padding: 0px !important;
 }
 
 .kvt-compactStyle [class*=src-components-AssetCard-AssetCard-container-].ignore-global {
@@ -206,7 +216,7 @@ span[data-kvt-volume]:hover {
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-footer-] {
-    padding: 0 4px 6px 0 !important;
+    padding: 0 4px 6px 4px !important;
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderBody-OrderBody-footer-]:after{
@@ -215,7 +225,7 @@ span[data-kvt-volume]:hover {
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-] {
     border: none;
-    margin: 1px;
+    margin: 0px !important;
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-itemContainer-] {
@@ -349,7 +359,7 @@ span[data-kvt-volume]:hover {
 
 
 /**
- * список заявок
+ * Виджет "активные заявки"
  */
 /* tabs in header */
 .kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-tabs] {

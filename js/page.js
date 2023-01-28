@@ -556,7 +556,7 @@ function kvtRun() {
 
                         // Создаем кнопки быстрого перехода к стакану
                         let s = mutation.target.querySelector('[data-qa-tag="menu-item"] [data-qa-tag="tag"] > .pro-tag-content')
-                        if (s) {
+                        if (s && s.innerHTML !== 'Новый') {
                             createSTIG(s.innerHTML)
                             break
                         }
