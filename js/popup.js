@@ -203,8 +203,7 @@ async function run() {
 
                 alor_operations.push(...operationsToday)                
 
-                const yesterday = {}, //Определим позы оставшиеся со вчера
-                    tickers = {}
+                const yesterday = {}; //Определим позы оставшиеся со вчера
 
                 //Расчет поз которые были на начало дня, которые потом отсечем
                 /*for (trade of alor_operations){
@@ -243,44 +242,30 @@ async function run() {
 
                     if (e.symbol && e.qty && d >= fromDateTime && d <= toDateTime ) {
 
-                        let tkr = e.symbol;
-
-                        if (void 0 === tickers[tkr]) {
-                            let ts = {};
-                            ts["Тикер"] = tkr;
-                            ts["Валюта"] = '';
-                            ts["Сумма покупок"] = 0;
-                            ts["Сумма продаж"] = 0;
-                            ts["Сделок покупки"] = 0;
-                            ts["Сделок продажи"] = 0;
-                            ts["Количество"] = 0;
-                            ts["Сумма открытой позы"] = 0;
-                            ts["Комиссия"] = 0;
-                            ts["exchange"] = e.exchange;
-
-                            tickers[tkr] = ts;
-                        }
+                        let tc = e.symbol;
+                        
+                        nl(tc, e)
 
                         if (e.side === "sell") {
-                            tickers[tkr]["Сделок продажи"]++
-                            tickers[tkr]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[tkr]["Количество"] -= (e.qty || 0);
+                            tickers[tc]["Сделок продажи"]++
+                            tickers[tc]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[tc]["Количество"] -= (e.qty || 0);
 
-                            if (tickers[tkr]["Количество"] === 0) {
-                                tickers[tkr]["Сумма открытой позы"] = 0;
+                            if (tickers[tc]["Количество"] === 0) {
+                                tickers[tc]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tkr]["Сумма открытой позы"] -= Math.abs((e.price * e.qty) || 0)
+                                tickers[tc]["Сумма открытой позы"] -= Math.abs((e.price * e.qty) || 0)
                             }
 
                         } else if (e.side === "buy") {
-                            tickers[tkr]["Сделок покупки"]++
-                            tickers[tkr]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[tkr]["Количество"] += e.qty;
+                            tickers[tc]["Сделок покупки"]++
+                            tickers[tc]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[tc]["Количество"] += e.qty;
 
-                            if (tickers[tkr]["Количество"] === 0) {
-                                tickers[tkr]["Сумма открытой позы"] = 0;
+                            if (tickers[tc]["Количество"] === 0) {
+                                tickers[tc]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tkr]["Сумма открытой позы"] += Math.abs((e.price * e.qty) || 0)
+                                tickers[tc]["Сумма открытой позы"] += Math.abs((e.price * e.qty) || 0)
                             }
                         }
                     }
@@ -328,7 +313,6 @@ async function run() {
                 await loadTi()
 
                 async function loadTi() {
-                    console.warn('start loadTI')
                     let {operations, nextCursor} = await getOperationsByCursor(cursor, limit),
                         nextExist = 0;
     
@@ -361,65 +345,72 @@ async function run() {
 
                 tinkoff_operations.reverse()
 
+                console.log(tinkoff_operations)
+
                 tinkoff_operations.forEach(e => {
                     "RUR" === e.payment.currency && (e.payment.currency="RUB");
+                    // DEL 'futures' === e.instrumentType && (e.payment.currency="Pt.")
 
                     let tc = `${e.ticker || e.isin}_${e.payment.currency || ''}`,
                         c = e.payment.currency || '';
 
+                    
+
+                    if (e.instrumentType === 'futures') {
+                        tc = `${e.ticker}_Pt.`
+                        nl(tc, e, 'futures')                     
+                    }
+
                     switch (e.type) {
                         case 'sell' : {
                             currs(c)
-                            if (e.instrumentType !== 'futures') {
-                                nl(tc, e)
-                                tickers[tc]["Сделок продажи"]++;
-                                tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
-                                tickers[tc]["Количество"] -= (e.doneRest || 0);
+                            nl(tc, e)                            
 
-                                if (tickers[tc]["Количество"] === 0) {
-                                    tickers[tc]["Сумма открытой позы"] = 0;
-                                } else {
-                                    tickers[tc]["Сумма открытой позы"] -= Math.abs(e.payment.value || 0)
-                                }
+                            let paymentVal = e.payment.value
+                            "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
+                                
+                            tickers[tc]["Сделок продажи"]++;
+                            tickers[tc]["Сумма продаж"] += Math.abs(paymentVal || 0)
+                            tickers[tc]["Количество"] -= (e.doneRest || 0);
+
+                            if (tickers[tc]["Количество"] === 0) {
+                                tickers[tc]["Сумма открытой позы"] = 0;
+                            } else {
+                                tickers[tc]["Сумма открытой позы"] -= Math.abs(paymentVal || 0)
                             }
                             break
                         }
 
                         case 'buy' : {
                             currs(c)
-                            if (e.instrumentType !== 'futures') {
-                                nl(tc, e)
-                                tickers[tc]["Сделок покупки"]++;
-                                tickers[tc]["Сумма покупок"] += Math.abs(e.payment.value || 0)
-                                tickers[tc]["Количество"] += e.doneRest;
-    
-                                if (tickers[tc]["Количество"] === 0) {
-                                    tickers[tc]["Сумма открытой позы"] = 0;
-                                } else {
-                                    tickers[tc]["Сумма открытой позы"] += Math.abs(e.payment.value || 0)
-                                }
-                            }                            
+                            nl(tc, e)
 
-                            /* if (e.instrumentType === 'futures') {
-                                
-                                e.doneRest * e.price.value
+                            let paymentVal = e.payment.value
+                            "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
+                                                        
+                            tickers[tc]["Сделок покупки"]++;                            
+                            tickers[tc]["Сумма покупок"] += Math.abs(paymentVal || 0);
+                            tickers[tc]["Количество"] += e.doneRest;                             
+
+                            if (tickers[tc]["Количество"] === 0) {
+                                tickers[tc]["Сумма открытой позы"] = 0;
                             } else {
-
-                            } */
+                                tickers[tc]["Сумма открытой позы"] += Math.abs(paymentVal || 0)
+                            }                                                       
 
                             break
                         }
 
                         // Начисление вариационной маржи
                         case 'accruingVarMargin' : {
-                            currs(c)
+                            currs(c)                           
                             corrss[c]['Маржа'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Списание вариационной маржи
                         case 'writeOffVarMargin' : {
-                            currs(c)
+                            currs(c)                            
                             corrss[c]['Маржа'] -= Math.abs(e.payment.value || 0)
                             break
                         }
@@ -427,24 +418,23 @@ async function run() {
 
                         // Комиссия брокера
                         case 'brokCom' : {
+                            currs(c)
                             nl(tc, e)
                             tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
-
-                            currs(c)
                             corrss[c]['Комиссия'] += Math.abs(e.payment.value || 0)                            
                             break
                         }
 
                         // Удержание налога
                         case 'tax' : {
-                            currs(c)
+                            currs(c)                        
                             corrss[c]['НДФЛ'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание налога по ставке 15%
                         case 'tax15' : {
-                            currs(c)
+                            currs(c)                            
                             corrss[c]['НДФЛ'] += Math.abs(e.payment.value || 0)
                             //corrss[c]['НДФЛ 15%'] += Math.abs(e.payment.value || 0)
                             break
@@ -452,27 +442,27 @@ async function run() {
 
                         // Корректировка налога
                         case 'taxBack' : {
-                            currs(c)
+                            currs(c)                           
                             corrss[c]['НДФЛ'] -= Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Списание комиссии за обслуживание
                         case 'regCom' : {
-                            currs(c)
+                            currs(c)                            
                             corrss[c]['Обслуживание'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Гербовый сбор                        
                         case 'stampDuty' : {
-                            currs(c)
+                            currs(c)                           
                             corrss[c]['Гербовый сбор'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Списание комиссии за непокрытую позицию
-                        case 'marginCom' : {                            
+                        case 'marginCom' : {
                             currs(c)
                             corrss[c]['Маржиналка'] += Math.abs(e.payment.value || 0)
                             break
@@ -480,13 +470,13 @@ async function run() {
 
                         // Списание комиссии за следование
                         case 'followingCom' : {
-                            currs(c)
+                            currs(c)                            
                             corrss[c]['Автоследование'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Списание комиссии за результат
-                        case 'followingResultCom' : {                            
+                        case 'followingResultCom' : {
                             currs(c)
                             corrss[c]['Автоследование рез.'] += Math.abs(e.payment.value || 0)
                             break
@@ -494,52 +484,48 @@ async function run() {
 
                         // Выплата купонов по облигациям
                         case 'coupon' : {
+                            currs(c)
                             nl(tc+="_coupon", e, 'coupon');
 
                             tickers[tc]["Сумма покупок"] = 0;
                             tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
-
-                            currs(c)
                             corrss[c]['Купоны'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание НДФЛ по купонам
                         case 'taxCpn' : {
-
-                            nl(tc+="_coupon", e, 'coupon');
-                            tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
-
                             currs(c)
+                            nl(tc+="_coupon", e, 'coupon');
+                            
+                            tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Купоны налог'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Выплата дивидендов по акциям
                         case 'dividend' : {
+                            currs(c)
                             nl(tc+="dividend", e, 'dividend');
 
                             tickers[tc]["Сумма покупок"] = 0;
                             tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
-
-                            currs(c)
                             corrss[c]['Дивиденды'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание НДФЛ по дивидендам
                         case 'taxDvd' : {
+                            currs(c)
                             nl(tc+="dividend", e, 'dividend');
                             tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
-
-                            currs(c)
                             corrss[c]['Дивиденды налог'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Комиссия за валютный остаток
                         case 'cashCom' : {
-                            currs(c)
+                            currs(c)                       
                             corrss[c]['Валютный остаток'] += Math.abs(e.payment.value || 0)
                             break
                         }
@@ -601,14 +587,8 @@ async function run() {
             if (void 0 === tickers[tc]) {
                 let ts = {};
                 ts["type"] = type;
-                ts["Тикер"] = e.ticker || e.isin;
-                
-                /* if (e.instrumentType === 'futures') {
-                    ts["Валюта"] = 'Pt.'
-                } else { */
-                    ts["Валюта"] = e.currency || e.payment.currency;
-                //}
-
+                ts["Тикер"] = e.ticker || e.isin || e.symbol;                
+                ts["Валюта"] = e.currency || (e.payment && e.payment.currency) || '';
                 ts["Комиссия"] = 0;
                 ts["Сумма покупок"] = 0;
                 ts["Сумма продаж"] = 0;
@@ -616,6 +596,7 @@ async function run() {
                 ts["Сделок продажи"] = 0;
                 ts["Количество"] = 0;
                 ts["Сумма открытой позы"] = 0;
+                ts["exchange"] = e.exchange || '';
 
                 tickers[tc] = ts;
             }
@@ -687,7 +668,7 @@ async function run() {
                 topTable += `<li><span>Чистыми:</span> ${kvth._ft(profit)} ${currency}</li>`
 
                 if (e['Маржа']) {
-                    topTable += `<li><span title="Вариационная маржа">Маржа:</span> ${kvth._ft(e['Маржа'])} ${currency}</li>`
+                    topTable += `<li><span class="turquoise-bg" title="Вариационная маржа">Маржа:</span> ${kvth._ft(e['Маржа'])} ${currency}</li>`
                 }
                 if (e['Дивиденды']) {
                     topTable += `<li><span class="purple-bg">Дивиденды:</span> ${kvth._ft(e['Дивиденды']-e['Дивиденды налог'])} ${currency}</li>`
@@ -698,7 +679,7 @@ async function run() {
                 if (e['Комиссия']) {
                     topTable += `<li>Комиссия:</span> ${kvth._ft(e['Комиссия'])} ${currency}</li>`
                 }                    
-                if (otherComm > 0) {
+                if (otherComm !== 0) {
                     topTable += `<li><a class="btnShowMore">Прочие комисси:</a> ${kvth._ft(otherComm)} ${currency}`
                     
                     topTable += `<div class="hidden">`
@@ -765,28 +746,36 @@ async function run() {
                 '<th></th>' +
                 '</tr></thead><tbody>';
 
+            let flagPosition = 0 // флаг открытых позиций.            
+
             res.forEach(function (e) {
                 let profit = e["Сумма продаж"] - e["Сумма покупок"] - e["Комиссия"]
 
-                table += '<tr' + (e['Количество'] !== 0 ? ' class="yellow-bg"' : '') + '>' +
-                    '<td>' + e['Тикер'] + '</td>' +
-                    '<td data-sort="' + kvth._rt(profit) + '">' + kvth._style(profit) + '</td>' +
-                    '<td data-sort="' + kvth._rt(e['Комиссия']) + '">' + kvth._ft(e['Комиссия']) + '</td>' +
-                    '<td>' + e['Сделок покупки'] + ' / ' + e['Сделок продажи'] + ' (' + (e['Сделок покупки'] + e['Сделок продажи']) + ')</td>' +
-                    '<td data-sort="' + kvth._rt(e['Сумма покупок'] + e['Сумма продаж']) + '">' + kvth._ft(e['Сумма покупок']) + ' / ' + kvth._ft(e['Сумма продаж']) + '</td>' +
-                    '<td data-sort="' + e['Валюта'] + '">' + kvth._c(e['Валюта']) + '</td>' +
-                    '</tr>';
+                if (e.type === 'futures') {
+                    profit = e["Сумма продаж"] - e["Сумма покупок"];
+                    e['Валюта'] = 'Pt.'
+                }
+
+                let cssClass = '';
+                0 !== e["Количество"] && (cssClass = "yellow-bg", flagPosition = 1);
+                'coupon' === e["type"] && (cssClass = "blue-bg");
+                'dividend' === e["type"] && (cssClass = "purple-bg");
+                'futures' === e["type"] && (cssClass = "turquoise-bg");
+                                
+                table += `<tr class="${cssClass}">` +
+                    `<td>${e['Тикер']}</td>` +
+                    `<td data-sort="${kvth._rt(profit)}">${kvth._style(profit)}</td>` +
+                    `<td data-sort="${kvth._rt(e['Комиссия'])}">${kvth._ft(e['Комиссия'])}</td>` +
+                    `<td>${e['Сделок покупки']} / ${e['Сделок продажи']} (${(e['Сделок покупки'] + e['Сделок продажи'])})</td>` +
+                    `<td data-sort="${kvth._rt(e['Сумма покупок'] + e['Сумма продаж'])}">${kvth._ft(e['Сумма покупок'])} / ${kvth._ft(e['Сумма продаж'])}</td>` +
+                    `<td data-sort="${e['Валюта']}">${kvth._c(e['Валюта'])}</td>` +
+                    `</tr>`;
             });
             table += '</tbody></table>';
 
-            /* if (openedNote) {
+            if (flagPosition) {
                 table += '<div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span></div>'
             }
-            if (couponNote) {
-                table += '<div class="note">* купоны помечены в таблице <span class="blue-bg">цветом</span></div>'
-            } */
-
-            //<br>* результат по фьючерсам не учитывается в результате, и отображается как "вариакционная маржа"</div>
 
             reportWindow.innerHTML += table;
 

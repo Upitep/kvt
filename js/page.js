@@ -112,7 +112,7 @@ class KvaloodTools {
         let widget = kvt.getGroupWidget(group_id);
     
         if (!widget) {
-            kvtd ?? console.error('[kvt][setTickerInGroup]', 'Виджет не найден')
+            kvtd ?? console.error(`[kvt][setTickerInGroup] Виджет не найден. ${ticker} ${group_id} ${type}`)
             return null;
         }
         let reactObjectName = Object.keys(widget).find(function (key) {
@@ -324,7 +324,7 @@ class KvaloodTools {
      * @returns 
      */
     getSymbolDetail(widgetId) {
-        let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="packages-core-lib-components-WidgetBody-WidgetBody-search-"] > span > span`);
+        let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="src-core-components-WidgetBody-WidgetBody-search"] > span > span`);
         if (el) {
             let reactObjectName = Object.keys(el).find(function (key) {
                 return key.startsWith("__reactFiber$")
@@ -397,7 +397,7 @@ class KvaloodTools {
     getGroupWidget(group_id){
         let orderWidgetObject;
         document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
-            if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
+            if (widget.querySelector('div[class^="src-core-components-GroupMenu-GroupMenu-icon-"][style*="color: ' + kvtGroups[group_id] + '"]')) {
                 orderWidgetObject = widget;
             }
         })
@@ -409,7 +409,7 @@ class KvaloodTools {
      * @param {*} widget 
      */
     getWidgetGroup(widget) {
-        let color = ((widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"]').style) || null).color || null
+        let color = ((widget.querySelector('div[class^="src-core-components-GroupMenu-GroupMenu-icon-"]').style) || null).color || null
         
         return color ? Object.keys(kvtGroups).find(key => kvtGroups[key] === color) : false;        
     }
@@ -423,7 +423,7 @@ class KvaloodTools {
 
         document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
             for (var group_id in kvtGroups) {
-                if (widget.querySelector('div[class^="packages-core-lib-components-GroupMenu-GroupMenu-icon"][style*="color: ' + kvtGroups[group_id] + '"]')) {
+                if (widget.querySelector('div[class^="src-core-components-GroupMenu-GroupMenu-icon-"][style*="color: ' + kvtGroups[group_id] + '"]')) {
                     if (!activeGroupsIds.includes(group_id)) {
                         activeGroupsIds.push(group_id)
                     }
@@ -1034,7 +1034,7 @@ function kvtCreateWidget(widget) {
 
             // Настройки
             if (widgetType === 'spbTS') {
-                let setting_btn = widget.querySelector('[class*="packages-core-lib-components-WidgetBody-WidgetBody-portalIcons-"]')    
+                let setting_btn = widget.querySelector('[class*="src-core-components-WidgetBody-WidgetBody-portalIcons-"]')    
                 setting_btn.innerHTML = `<div class="src-containers-IconsPortal-styles-popoverTarget-3etvx"><div class="pro-popover-content"><span data-qa-tag="icon" data-qa-icon="settings-small-filled" class="src-containers-IconsPortal-styles-icon-2TlS0 pro-icon-interactive pro-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="rgb(var(--pro-icon-color))" fill-rule="evenodd" clip-rule="evenodd" d="M7 14a6 6 0 0 0 2 0v-2a4 4 0 0 0 1 0l1 1a6 6 0 0 0 2-2l-1-1a4 4 0 0 0 0-1h2V8a6 6 0 0 0 0-1h-2a4 4 0 0 0 0-1l1-1-2-2-1 1H9V2a6 6 0 0 0-2 0v2H6L5 3 4 4 3 5l1 1v1H2a6 6 0 0 0 0 2h2a4 4 0 0 0 0 1l-1 1 1 1a6 6 0 0 0 1 1l1-1a4 4 0 0 0 1 0v2Zm3-6a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"></path></svg></span></div></div>`;
             
                 widget.querySelector('.kvt-widget').insertAdjacentHTML("beforeend", '<div class="kvt-widget-settings"></div>')
@@ -1088,7 +1088,7 @@ function kvtCreateWidget(widget) {
             }
     
             // отписка при закрытии виджета
-            widget.querySelector('[class*="packages-core-lib-components-WidgetBody-WidgetBody-icon-"][data-qa-icon="cross"]').addEventListener("click", function () {
+            widget.querySelector('[class*="src-core-components-WidgetBody-WidgetBody-icons-"] [data-qa-icon="cross"]').addEventListener("click", function () {
                 onClose(widgetID)
                 storageWidgets = JSON.parse(localStorage.getItem("_kvt-widgets") || "{}")
                 delete storageWidgets[widgetID]
