@@ -223,19 +223,20 @@ span[data-kvt-volume]:hover {
     display: none;
 }
 
-.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-] {
-    border: none;
-    margin: 0px !important;
+/* Объём "доступно", "с плечом" */
+.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-itemContainer-] {
+    padding: 0 2px;
 }
 
-.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-itemContainer-] {
-    padding: 0;
+.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-divider-] {
+    display: none;
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-container-] {
     background: none;
     padding: 0;
-    margin: 5px 0 5px;
+    border: none;
+    margin: 5px 0;
 }
 
 .kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButton-OrderLimits-OrderLimits-item-] {
@@ -545,13 +546,13 @@ span[data-kvt-volume]:hover {
 /**
  * Шапка виджетов
  */
-.kvt-compactStyle [class*=packages-core-lib-components-WidgetBody-WidgetBody-dragPanel-] {
+.kvt-compactStyle [class*=src-core-components-WidgetBody-WidgetBody-dragPanel-] {
     height: 22px;
 }
-.kvt-compactStyle [class*=packages-core-lib-components-GroupMenu-GroupMenu-groupCircle-] {
+.kvt-compactStyle [class*=src-core-components-GroupMenu-GroupMenu-groupCircle-] {
     height: 22px;
 }
-.kvt-compactStyle [class*=packages-core-lib-components-WidgetBody-WidgetBody-title-] {
+.kvt-compactStyle [class*=src-core-components-WidgetBody-WidgetBody-title-] {
     padding: 0 4px;
 }
 
