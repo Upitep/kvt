@@ -67,7 +67,7 @@ async function kvtAlorGetStatsToday(portfolio, exchange = 'SPBX') {
     })
 }
 
-async function kvtAlorGetStatsHistory(portfolio, dateFrom, tradeNumFrom, dateTo, exchange = 'SPBX') {
+async function kvtAlorGetStatsHistory(portfolio, exchange = 'SPBX', dateFrom, tradeNumFrom, dateTo) {
 
     await kvtSyncAlorAccessToken()
 

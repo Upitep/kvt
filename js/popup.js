@@ -59,7 +59,7 @@ async function run() {
     })
 
     if (config !== undefined) {
-        let accounts = await getBrokerAccounts(config.psid || 0)    
+        let accounts = await getBrokerAccounts(config.psid || 0)
         if (accounts) {
             let select = document.getElementById('statsFor')
     
@@ -126,7 +126,8 @@ async function run() {
     }
 
     if (kvtSettings.alorPortfolio) {
-        document.getElementById('statsFor').insertAdjacentHTML('beforeend', `<option value="alor" ${kvtSettings.statsFor === 'alor' ? 'selected' : ''}>Alor</option>`);
+        document.getElementById('statsFor').insertAdjacentHTML('beforeend', `<option value="alor" ${kvtSettings.statsFor === 'alor' ? 'selected' : ''}>Alor SPBX</option>`);
+        document.getElementById('statsFor').insertAdjacentHTML('beforeend', `<option value="alor_moex" ${kvtSettings.statsFor === 'alor_moex' ? 'selected' : ''}>Alor MOEX</option>`);
     }
 
     // Кнопка загрузить отчет
@@ -161,11 +162,12 @@ async function run() {
             tickers = {},
             corrss = {}; // Результат по валютам. 
 
-        if (kvtSettings.statsFor === 'alor') {
+        if (kvtSettings.statsFor === 'alor' || kvtSettings.statsFor === 'alor_moex') {
             try {
                 let alor_operations = [],
-                    operationsToday = await kvtAlorGetStatsToday(kvtSettings.alorPortfolio),
-                    operationsHistory = await kvtAlorGetStatsHistory(kvtSettings.alorPortfolio, strYmd);
+                    exchange = 'alor_moex' === kvtSettings.statsFor ? 'MOEX' : 'SPBX',
+                    operationsToday = await kvtAlorGetStatsToday(kvtSettings.alorPortfolio, exchange),
+                    operationsHistory = await kvtAlorGetStatsHistory(kvtSettings.alorPortfolio, exchange, strYmd);
 
                 console.log('сегодняшние', operationsToday)
                 console.log('operationsHistory', operationsHistory)
@@ -181,7 +183,7 @@ async function run() {
 
                 // Если операций больше 1000, ищем ласт сделку, и от неё отталкиваемся еще раз
                 async function getStats(last_order_id) {
-                    let operationsHistory = await kvtAlorGetStatsHistory(kvtSettings.alorPortfolio, strYmd, last_order_id)
+                    let operationsHistory = await kvtAlorGetStatsHistory(kvtSettings.alorPortfolio, exchange, strYmd, last_order_id)
 
                     if (operationsHistory.result === 'error') {
                         throw new Error(operationsHistory.status)
@@ -1012,7 +1014,7 @@ async function loadPrintsTicker(onlyDownload = 0) {
                     let tr = res.payload.trades[i],
                         vol = tr[0] * tr[1] * res.payload.lotsize
 
-                    res.payload.trades[i][3] = kvth._tsToTime(tr[3])
+                    res.payload.trades[i][3] = kvth._tsToTime(tr[3], 1)
 
                     if (tr[1] >= printMinQty) {
                         if (showed < limit_show) {

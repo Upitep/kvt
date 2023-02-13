@@ -7,7 +7,6 @@ let kvtd = false,
         kvts: {},
         rcktMon: {}
     },
-    kvtPrices = {},
     kvtTickerInfo = {},
     kvtGroups = {
         1: "rgb(255, 212, 80)",
@@ -181,6 +180,99 @@ class KvaloodTools {
         }
 
         return {price, future_price, lot_size}
+    }
+
+    /**
+     * Быстрые кнопки в шт.
+     * @param {*} widget 
+     */
+    async addFastVolumeSizeButtons(widget) {
+        if (widget && kvtSettings.kvtFastVolumeSize) {     
+               
+            await kvt.waitForElm(`[data-widget-id="${widget.getAttribute('data-widget-id')}"] [class^="src-components-OrderHeader-styles-price-"]`).then(e => {
+                let block = widget.querySelector('[class*="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]')
+                let insertBlock = widget.querySelector('.kvtFastVolumeSize');
+        
+                if (!insertBlock) {
+                    block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumeSize"></div>');
+                    insertBlock = widget.querySelector('.kvtFastVolumeSize');
+                } else {
+                    insertBlock.innerHTML = ''
+                }
+        
+                for (let vol of kvtSettings.kvtFastVolumeSize.split(',')) {
+                    vol = vol.replace(/\D/g,'')
+                    let vel = document.createElement('span')
+                    vel.setAttribute('data-kvt-volume', vol);
+                    vel.innerHTML = vol;
+        
+                    insertBlock.insertAdjacentElement('beforeend', vel)
+                    vel.onclick = e => {
+                        kvt.setFastVolume(widget, vol)
+                    }
+                }
+            })        
+        }
+    }
+
+    /**
+     * Быстрые кнопки в деньгах
+     * @param {*} widget 
+     */
+    async addFastVolumePriceButtons(widget) {
+
+        if (widget && kvtSettings.kvtFastVolumePrice) {
+
+            await this.waitForElm(`[data-widget-id="${widget.getAttribute('data-widget-id')}"] [class^="src-components-OrderHeader-styles-price-"]`)
+
+            let insertBlock = widget.querySelector('.kvtFastVolumePrice');
+            if (!insertBlock) {
+                widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]').insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
+                insertBlock = widget.querySelector('.kvtFastVolumePrice');
+            } else {
+                insertBlock.innerHTML = ''
+            }
+
+            // Узнаём цену, и если можем вставить кнопку, вставляем ?
+
+            for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
+                let vel = document.createElement('span')
+                vel.setAttribute('data-kvt-volume', i);
+                vel.innerHTML = kvth.sizeFormat(i);
+                insertBlock.insertAdjacentElement('beforeend', vel)
+                vel.onclick = e => {
+                    this.velButtonClick(e.target)
+                }            
+            }
+        }    
+    }
+
+    /**
+     * При клике на кнопку быстрого объёма в деньгах, рассчитываем кол-во
+     * @param {*} e 
+     */
+    async velButtonClick(e) {
+        let vol = e.getAttribute('data-kvt-volume');
+        let widget = e.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')        
+        let price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
+            lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,""),
+            price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
+            future_price = 0;
+
+        if (price_block.endsWith('пт.')) {
+            if (!kvtSettings.brokerAccountId) {
+                kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
+            }
+
+            let ticker = widget.getAttribute('data-symbol-id')
+
+            future_price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+            kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${future_price}`)
+        }
+
+        let prc = future_price !== 0 ? future_price : price
+
+        this.setFastVolume(widget, Number((vol / prc / lot_size).toFixed()))
     }
 
     /**
@@ -569,17 +661,9 @@ function kvtRun() {
                     let el = mutation.target.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')
                     if (el && !el.classList.contains('kvt-widget-load')) {
                         el.classList.add('kvt-widget-load')
-                        add_kvtFastVolumeSizeButtons(el)
-                        add_kvtFastVolumePriceButtons(el, true)
+                        kvt.addFastVolumeSizeButtons(el)
+                        kvt.addFastVolumePriceButtons(el)
                         kvt.getTickerInfo(el)
-                    }
-                }
-
-                if (mutation.target && mutation.type === 'characterData') {
-
-                    // Добавим быстрый объем в $. следим за input цены справа вверху в виджете заявки
-                    if (mutation.target.parentElement && mutation.target.parentElement.matches('[class*="src-containers-Animated-styles-clickable-"]')) {
-                        add_kvtFastVolumePriceButtons(mutation.target.parentElement.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]'));
                     }
                 }
             }
@@ -622,8 +706,8 @@ function kvtRun() {
     if (widgets.length) {
         widgets.forEach(function (widget) {
             widget.classList.add('kvt-widget-load')
-            add_kvtFastVolumeSizeButtons(widget)
-            add_kvtFastVolumePriceButtons(widget)
+            kvt.addFastVolumeSizeButtons(widget)
+            kvt.addFastVolumePriceButtons(widget)
             kvt.getTickerInfo(widget)
         })
     }
@@ -655,9 +739,6 @@ function kvtRun() {
                             unsubscribe_getdp(item.widgetId)
                         }
                     }
-
-                    // Удаляем цены для кнопок add_kvtFastVolumePriceButtons
-                    kvtPrices = {}
                 }
             }
         })
@@ -875,108 +956,6 @@ function createVel(ticker, groupId) {
     return vel;
 }
 
-/**
- * Быстрые кнопки в деньгах
- * @param {*} widget 
- */
-async function add_kvtFastVolumePriceButtons(widget, create = false) {
-
-    if (widget && kvtSettings.kvtFastVolumePrice) {
-
-        await kvt.waitForElm('[class^="src-components-OrderHeader-styles-price-"]')
-
-        let widgetId = widget.getAttribute('data-widget-id'),
-            ticker = widget.getAttribute('data-symbol-id'),
-            {price, future_price, lot_size} = await kvt.getSymbolPriceLot(widget, ticker),
-            diff = 0;
-
-        if (kvtPrices[widgetId] && !create) {
-            if (kvtPrices[widgetId].ticker !== ticker) {
-                load_buttons()
-            } else {
-                // Меняем только если нету или цена > || < 0.5% От ранее установленной.
-                diff = (price - kvtPrices[widgetId].price_html) * 100 / price;
-                if (diff <= -0.5 || diff >= 0.5) {
-                    kvtd ?? console.log('[add_kvtFastVolumePriceButtons] разница', diff )
-                    load_buttons()
-                }
-            }
-        } else {
-            load_buttons()
-        }
-
-        async function load_buttons() {
-            kvtPrices[widgetId] = {
-                price: price,
-                ticker: ticker                
-            }
-
-            setTimeout(async function() {
-                let insertBlock = widget.querySelector('.kvtFastVolumePrice');
-                if (!insertBlock) {
-                    // kvtFastVolumeSize
-                    widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]').insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumePrice"></div>');
-                    insertBlock = widget.querySelector('.kvtFastVolumePrice');
-                } else {
-                    insertBlock.innerHTML = ''
-                }
-
-                let vols = [],
-                    prc = future_price !== 0 ? future_price : price
-
-                for (let i of kvtSettings.kvtFastVolumePrice.split(',')) {
-                    let vol = Number((i / prc / lot_size).toFixed());
-
-                    if (kvtSettings.kvtFastVolumePriceRound) {
-                        vol = kvt.customRound(vol)
-                    }
-
-                    if (vol !== 0 && !vols.includes(vol)) {
-                        vols.push(vol);
-
-                        let vel = document.createElement('span')
-                        vel.setAttribute('data-kvt-volume', vol);
-                        vel.setAttribute('title', vol + ' шт');
-                        vel.innerHTML = kvth.sizeFormat(i);
-
-                        insertBlock.insertAdjacentElement('beforeend', vel)
-                        vel.onclick = e => {
-                            kvt.setFastVolume(widget, vol)
-                        }
-                    }
-                }
-            }, 1)            
-        }
-    }    
-}
-
-function add_kvtFastVolumeSizeButtons(widget) {
-    if (widget && kvtSettings.kvtFastVolumeSize) {
-        setTimeout(function(){
-            let block = widget.querySelector('[class*="src-modules-CombinedOrder-components-OrderSummary-OrderSummary-orderSummary-"]')
-            let insertBlock = widget.querySelector('.kvtFastVolumeSize');
-
-            if (!insertBlock) {
-                block.insertAdjacentHTML("beforebegin", '<div class="kvtFastVolumeSize"></div>');
-                insertBlock = widget.querySelector('.kvtFastVolumeSize');
-            } else {
-                insertBlock.innerHTML = ''
-            }
-
-            for (let vol of kvtSettings.kvtFastVolumeSize.split(',')) {
-                vol = vol.replace(/\D/g,'')
-                let vel = document.createElement('span')
-                vel.setAttribute('data-kvt-volume', vol);
-                vel.innerHTML = vol;
-
-                insertBlock.insertAdjacentElement('beforeend', vel)
-                vel.onclick = e => {
-                    kvt.setFastVolume(widget, vol)
-                }
-            }
-        }, 1)
-    }
-}
 
 function kvtCreateWidget(widget) {
     if (widget && !widget.getAttribute('data-kvt-widget-load')) {

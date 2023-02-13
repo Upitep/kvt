@@ -20,9 +20,13 @@ class kvtHelper {
         return this.formatter.format(Number(e).toFixed(2))
     }
 
-    _tsToTime(timestamp) {
+    _tsToTime(timestamp, milisecond = 0) {
         let m = new Date(timestamp);
-        return [m.getHours(), m.getMinutes(), m.getSeconds()/*, m.getMilliseconds()*/].map(function (x) {
+        let tr = [m.getHours(), m.getMinutes(), m.getSeconds()]
+      
+        milisecond && tr.push(m.getMilliseconds());
+      
+        return tr.map(function (x) {
             return x < 10 ? "0" + x : x
         }).join(":")
     }
