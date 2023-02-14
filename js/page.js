@@ -259,6 +259,9 @@ class KvaloodTools {
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
             future_price = 0;
 
+        // ставим фокус на поле цены
+        widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"] input').focus()
+
         if (price_block.endsWith('пт.')) {
             if (!kvtSettings.brokerAccountId) {
                 kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
