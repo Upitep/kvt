@@ -203,7 +203,7 @@ async function run() {
                 console.log('Загружено', alor_operations.length)
                 console.log('Сегодняшних', operationsToday.length)
 
-                alor_operations.push(...operationsToday)                
+                alor_operations.push(...operationsToday)
 
                 const yesterday = {}; //Определим позы оставшиеся со вчера
 
@@ -252,6 +252,7 @@ async function run() {
                             tickers[tc]["Сделок продажи"]++
                             tickers[tc]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
                             tickers[tc]["Количество"] -= (e.qty || 0);
+                            tickers[tc]["Комиссия"] += Math.abs(e.commission || 0)
 
                             if (tickers[tc]["Количество"] === 0) {
                                 tickers[tc]["Сумма открытой позы"] = 0;
@@ -263,6 +264,7 @@ async function run() {
                             tickers[tc]["Сделок покупки"]++
                             tickers[tc]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
                             tickers[tc]["Количество"] += e.qty;
+                            tickers[tc]["Комиссия"] += Math.abs(e.commission || 0)
 
                             if (tickers[tc]["Количество"] === 0) {
                                 tickers[tc]["Сумма открытой позы"] = 0;
@@ -283,11 +285,16 @@ async function run() {
                 for (let i = 0; i < result.length; i++) {
                     let res = await kvtAlorGetInfoSymbol(result[i]['Тикер'], result[i]['exchange']);
 
-                    result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
-                    result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
-                    result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
+                    // Для SPBX, торгуя HKD акциями, * на лотность. На MOEX, в qty идёт кол-во акций, а не лотов.
+                    if (result[i]['exchange'] !== 'MOEX') {
+                        result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
+                        result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
+                        result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
+                    }
+
                     result[i]['Валюта'] = res.currency || 'USD';
-                    currs(res.currency)
+                    currs(result[i]['Валюта']);
+                    corrss[result[i]['Валюта']]['Комиссия'] += Math.abs(result[i]["Комиссия"] || 0)
                 }
 
                 reportWindow.innerHTML = 'Итоговая обработка...';
