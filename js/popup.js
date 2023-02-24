@@ -286,11 +286,11 @@ async function run() {
                     let res = await kvtAlorGetInfoSymbol(result[i]['Тикер'], result[i]['exchange']);
 
                     // Для SPBX, торгуя HKD акциями, * на лотность. На MOEX, в qty идёт кол-во акций, а не лотов.
-                    if (result[i]['exchange'] !== 'MOEX') {
-                        result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
-                        result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
-                        result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
-                    }
+                    //if (result[i]['exchange'] !== 'MOEX') {
+                    result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
+                    result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
+                    result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
+                    //}
 
                     result[i]['Валюта'] = res.currency || 'USD';
                     currs(result[i]['Валюта']);

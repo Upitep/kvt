@@ -244,7 +244,7 @@ span[data-kvt-volume]:hover {
 }
 
 /* меньше кнопочки */
-.kvt-compactStyle [class*=src-components-SMSConfirmation-styles-popover-] .pro-button {
+.kvt-compactStyle [class*=src-modules-CombinedOrder-components-OrderButtons-OrderButtons-orderButton-] .pro-button {
     padding: 2px 0;
     min-height: 24px;
 }
@@ -379,13 +379,14 @@ span[data-kvt-volume]:hover {
 
 /* inner items block */
 .kvt-compactStyle [class*=src-modules-Orders-containers-styles-item-] {
-    margin: 0 0;
-    padding-top: 4px;
+    margin: 4px 0;
+    padding-top: 0px;
 }
 
 .kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-main-] {
-    padding: 3px 6px;
     min-width: 200px;
+    min-height: 32px;
+    padding: 0px 6px;
 }
 
 /* item заявки */
@@ -393,10 +394,27 @@ span[data-kvt-volume]:hover {
     margin: 0 3px;
 }
 
+/* кнопки редактирования/отмены */
+.kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-hoverActions-] {
+    padding-right: 4px;
+    width: 70px;
+}
+.kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-hoverAction-]:first-child {
+    margin-right: 8px;
+    margin-left: 0px;
+}
+
 /* item заявки + item истории операций */
 .kvt-compactStyle [class*=src-components-TickerInfo-TickerInfo-container-] {
     padding: 0;
 }
+
+.kvt-compactStyle [class*=src-modules-Orders-containers-components-styles-header_editing] {
+    border-bottom: none;
+}
+
+
+
 
 
 /**
@@ -448,6 +466,7 @@ span[data-kvt-volume]:hover {
 
 .kvt-compactStyle [class*=src-modules-Timeline-containers-components-TimelineList-styles-main-] {
     padding: 0 6px !important;
+    min-height: 32px;
 }
 .kvt-compactStyle [class*=src-modules-Timeline-containers-components-TimelineList-styles-wrapper] {
     padding-top: 4px;
@@ -720,11 +739,14 @@ span[data-kvt-volume]:hover {
     opacity: 0;
     position: absolute;
     top: 0;
-    right: 0;
     background: linear-gradient(90deg, transparent, rgba(var(--pro-base-02),1));
     padding: 0 6px 0 27px;
     height: 100%;
     visibility: hidden;    
+}
+
+.kvt-widget-content .getdp-stigButtons {
+    right: 0;
 }
 
 .kvt-widget-content .getdp-item:hover {

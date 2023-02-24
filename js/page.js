@@ -56,7 +56,9 @@ let kvtd = false,
 
                 line.innerHTML = `<td class="item-ticker"><div><span>${jd.text}</span><span class="item-ticker-symbol">${jd.symbol}</span><span>${jd.smallCap ? '⚠️' : ''}</span></div></td><td>${kvth.sizeFormat(jd.qty)}</td><td>${kvth._ft(jd.price)}</td><td class="item-total">${kvth.sizeFormat(jd.qty * jd.price)}</td><td class="item-timestamp">${kvth._tsToTime(jd.timestamp).padStart(12)}</td>`
 
-                line.querySelector('.item-timestamp').insertAdjacentElement('beforeEnd', createSTIGline(jd.symbol));
+                let stig = createSTIGline(jd.symbol);
+                
+                stig && line.querySelector('.item-timestamp').insertAdjacentElement('beforeEnd', stig);
                 return line;
             },
             unsubscribe: unsubscribe_getdp
@@ -672,8 +674,7 @@ function kvtRun() {
         }
     }).observe(document.body, {
         childList: true,
-        subtree: true,
-        characterData: true
+        subtree: true
     })
 
     kvt.widgetsLoad()
@@ -908,15 +909,20 @@ function rcktMonConnect() {
 
 
 function createSTIGline(ticker) {
-    let groups = window.__kvtWidgetGroups ? window.__kvtWidgetGroups : kvt.getActiveGroupsWidget()
+    !window.__kvtWidgetGroups ? window.__kvtWidgetGroups = kvt.getActiveGroupsWidget() : 0
 
-    if (groups.length) {
+    if (window.__kvtWidgetGroups.length) {
         let el = document.createElement('div');
         el.classList.add('getdp-stigButtons')
-        for (let i of groups) {    
+        for (let i of window.__kvtWidgetGroups) {    
             el.insertAdjacentElement("beforeEnd", createVel(ticker, i));        
         }
+        el.onclick = e => {
+            e.stopPropagation();
+        } 
         return el;
+    } else {
+        return false;
     }
 }
 
@@ -951,6 +957,7 @@ function createVel(ticker, groupId) {
     vel.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="7" fill="currentColor"></circle></svg>';
 
     vel.onclick = e => {
+        e.stopPropagation();
         kvt.setTickerInGroup(ticker, groupId, 'vel')
     }
 
