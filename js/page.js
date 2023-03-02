@@ -392,24 +392,28 @@ class KvaloodTools {
      */
     getTickerInfo(widget) {
         kvtd ?? console.log('[kvt][getTickerInfo]', widget, widget.getAttribute("data-symbol-id"))
-    
-        setTimeout(function() {
-            let widgetId = widget.getAttribute('data-widget-id')
-    
+
+        if (window.__kvtWS && window.__kvtWS.readyState === 1) {                
+            let widgetId = widget.getAttribute('data-widget-id');
             kvtTickerInfo[widgetId] = kvth.uuidv4();
 
-            if (window.__kvtWS && window.__kvtWS.readyState === 1) {
-                window.__kvtWS.send(JSON.stringify({
-                    user_id: kvtSettings.telegramId,
-                    type: 'tickerInfo',
-                    symbol: widget.getAttribute("data-symbol-id"),
-                    guid: kvtTickerInfo[widgetId] 
-                }));
-    
-                let block = widget.querySelector('.kvt-shortsBrokers')
-                if (block) block.remove()
+            window.__kvtWS.send(JSON.stringify({
+                user_id: kvtSettings.telegramId,
+                type: 'tickerInfo',
+                symbol: widget.getAttribute("data-symbol-id"),
+                guid: kvtTickerInfo[widgetId] 
+            }));
+
+            let block = widget.querySelector('.kvt-shortsBrokers')
+            if (block) block.remove()
+        } else {
+            if (this.getState('kvts') !== 0) {
+                setTimeout(function(){
+                    kvt.getTickerInfo(widget)
+                }, 700)
             }
-        }, 1)
+            kvtd ?? console.log('[kvt][getTickerInfo]', 'Нет данных, сокет не готов')
+        }
     }
 
     /**
@@ -668,6 +672,62 @@ function kvtRun() {
                         kvt.addFastVolumePriceButtons(el)
                         kvt.getTickerInfo(el)
                     }
+                }            
+            }
+
+            
+            /**
+             * Генерим быстрые переходы к группе по тикеру из разных виджетов
+             */
+            for (let node of mutation.addedNodes) {                
+                if (!(node instanceof HTMLElement)) continue; // only html elemtnts, NO text
+                
+                if (node.hasAttribute('data-index') && node.hasAttribute('data-known-size') && node.hasAttribute('data-index-in-group') ) {
+
+                    if (node.tagName === 'DIV') {
+                        if (node.firstChild.matches('[class*="src-modules-Orders-containers-styles-item-"]')) {
+                            // Активные заявки
+                            let item = node.firstChild.querySelector('.UICard')
+                            item.setAttribute('data-kvt-itemSTIG-load', '')
+    
+                            let stig = createSTIGline(item.getAttribute('data-symbol-id'))
+    
+                            if (stig) {
+                                item.querySelector('[class*=src-modules-Orders-containers-components-styles-header-]').insertAdjacentElement("beforeend", stig)
+                            }
+                        } else if (node.firstChild.matches('[class*="src-modules-Timeline-containers-components-TimelineList-styles-wrapper-"]')) {
+                            // История операций
+                            let item = node.firstChild.querySelector('.UICard')
+                            item.setAttribute('data-kvt-itemSTIG-load', '')
+    
+                            let stig = createSTIGline(item.getAttribute('data-symbol-id'))
+    
+                            if (stig) {
+                                item.querySelector('[class*=src-components-TickerInfo-TickerInfo-container-]').insertAdjacentElement("beforeend", stig)
+                            }
+                        }
+                    } else if (node.tagName === 'TR') {
+                        node.setAttribute('data-kvt-itemSTIG-load', '')
+                        let symbol = node.getAttribute('data-symbol-id')
+                        let stig = createSTIGline(symbol)
+                        if (stig) {
+                            node.firstChild.insertAdjacentElement("beforeend", stig)
+                        }
+                        console.log(symbol)
+                    }
+                    
+                } else if (node.tagName === 'TBODY' && node.getAttribute('data-test-id') === "virtuoso-viewport") {
+                    // Вставляем список в виджете инструменты
+
+                    // перебираем элементы
+                    node.querySelectorAll('tr').forEach(tr => {
+                        tr.setAttribute('data-kvt-itemSTIG-load', '')
+                        let symbol = tr.getAttribute('data-symbol-id')
+                        let stig = createSTIGline(symbol)
+                        if (stig) {
+                            tr.firstChild.insertAdjacentElement("beforeend", stig)
+                        }
+                    })
                 }
             }
 
@@ -717,6 +777,7 @@ function kvtRun() {
     new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             if (mutation.type === 'attributes') {
+                // При смене data-symbol-id у виджета "заявка"
                 if (mutation.target.getAttribute('data-widget-type') === 'COMBINED_ORDER_WIDGET') {
                     let symbol = mutation.target.getAttribute('data-symbol-id')
                     let prevSymbol = mutation.oldValue
@@ -726,8 +787,19 @@ function kvtRun() {
                     }
                 }
 
+                // при смене data-symbol-id у tr item в "инструменты" и "портфель"
+                if (mutation.target.tagName === 'TR' && mutation.target.hasAttribute('data-index') && mutation.target.hasAttribute('data-known-size') && mutation.target.hasAttribute('data-index-in-group') ) {
+                    let symbol = mutation.target.getAttribute('data-symbol-id')
+                    let stig = createSTIGline(symbol)
+                    if (stig) {
+                        mutation.target.firstChild.insertAdjacentElement("beforeend", stig)
+                    }
+                }
+
                 // При смене табов
                 if (mutation.target.getAttribute('id') === 'SpacePanel') {
+
+                    delete window.__kvtWidgetGroups; // очистим группы
 
                     //  отписываемся от разных данных
                     if (window.__kvtTs) {
@@ -809,7 +881,7 @@ function kvt_connect(resubscribe = false) {
                                 block.innerHTML = blockVal;
                             } else {
                                 let OrderBody = widget.querySelector('[class*="OrderBody-OrderBody-scrollContainer-"]');
-                                OrderBody.insertAdjacentHTML("beforeend", '<div class="kvt-shortsBrokers">🩳 <span>' + blockVal +'</span></div>')
+                                OrderBody && OrderBody.insertAdjacentHTML("beforeend", '<div class="kvt-shortsBrokers">🩳 <span>' + blockVal +'</span></div>')
                             }
                         }
 
@@ -911,7 +983,7 @@ function rcktMonConnect() {
 function createSTIGline(ticker) {
     !window.__kvtWidgetGroups ? window.__kvtWidgetGroups = kvt.getActiveGroupsWidget() : 0
 
-    if (window.__kvtWidgetGroups.length) {
+    if (window.__kvtWidgetGroups.length && ticker && ticker !== 'mainCurrency') {
         let el = document.createElement('div');
         el.classList.add('getdp-stigButtons')
         for (let i of window.__kvtWidgetGroups) {    

@@ -415,6 +415,59 @@ span[data-kvt-volume]:hover {
 
 
 
+/**
+* кнопки быстрого перехода 
+*/
+[data-kvt-itemSTIG-load] {
+    position: relative;
+}
+[data-kvt-itemSTIG-load] .getdp-stigButtons {
+    left: -4px;
+    z-index: 1;
+    display: flex !important;      
+    transition: all .1s ease-in;
+    flex-wrap: wrap;
+    align-content: center;
+    cursor: default;
+    gap: 6px 3px;
+    padding: 0 20px 0 5px;
+}
+[data-kvt-itemSTIG-load]:hover .getdp-stigButtons {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* в виджете "активыне заявки" */
+[class*=src-modules-Orders-containers-components-styles-header-]{
+    position: relative;
+}
+[data-widget-type="ORDERS_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
+    background: linear-gradient(-90deg,rgba(var(--pro-base-02),0) 0%,rgba(var(--pro-base-02),1) 36%,rgba(var(--pro-base-02),1));    
+}
+
+/* в виджете "история операций" */
+[data-widget-type="TIMELINE_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
+    background: linear-gradient(-90deg,rgba(var(--pro-base-03),0) 0%,rgba(var(--pro-base-03),1) 36%,rgba(var(--pro-base-03),1));
+}
+[class*=src-modules-Timeline-containers-components-TimelineList-styles-main-] > div{
+    position: relative;
+}
+
+/* в виджете "инструменты" */
+[data-widget-type="MARKET_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
+    left: 0;
+    background: linear-gradient(-90deg,rgba(var(--pro-base-03),0) 0%,rgba(var(--pro-base-03),1) 36%,rgba(var(--pro-base-03),1));
+}
+
+/* в виджете "портфолио" */
+[data-widget-type="PORTFOLIO_WIDGET"] [data-kvt-itemSTIG-load] [class*=src-modules-Portfolio-containers-styles-actionButton]{
+    top: 0;
+}
+[data-widget-type="PORTFOLIO_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
+    left: 0;
+    background: linear-gradient(-90deg,rgba(var(--pro-base-03),0) 0%,rgba(var(--pro-base-03),1) 36%,rgba(var(--pro-base-03),1));
+}
+
 
 
 /**
