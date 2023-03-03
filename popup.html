@@ -103,9 +103,17 @@
 				<div class="col-6">
 					<div class="form-check">
 						<input type="checkbox" name="compactStyle" id="compactStyle" class="form-check-input">
-						<label for="compactStyle">Компактные стили терминала</label>
+						<label for="compactStyle">Компактные стили терминала <div class="hint"><span>Появится больше свободного места в виджетах "заявка", "активные заявки", "история операций" итд.</span></div>
+						</label>
 					</div>
-					<div class="form-text">Больше свободного места на экране.</div>
+					<div class="form-check">
+						<input type="checkbox" name="fastSTIG" id="fastSTIG" class="form-check-input">
+						<label for="fastSTIG">Быстрый переход к группам <div class="hint"><span>Переход к группам из виджетов "инструменты", "портфель", "активные заявки", "история операций", кликая на "кружки" групп.</span></div></label>
+					</div>
+					<div class="form-check">
+						<input type="checkbox" name="hideShortsBrokers" id="hideShortsBrokers" class="form-check-input">
+						<label for="hideShortsBrokers">Скрыть шорты у др. брокеров <div class="hint"><span>В виджете "заявка", над кнопками покупка/продажа, отображается блок с информацией у каких брокеров есть открытая акция в шорт.</span></div></label>
+					</div>
 				</div>
 				<div class="col-6">
 					<label for="styleTS" class="form-label">Стили ленты принтов (t&s)</label>
@@ -132,13 +140,6 @@
 				<div class="col-7">
 					<label for="kvtToken" class="form-label">Токен для подключения к kvts</label>
 					<input type="text" name="kvtToken" id="kvtToken" class="form-control" placeholder="">
-				</div>
-			</div>
-
-			<div class="form-group">
-				<div class="form-check">
-					<input type="checkbox" name="hideShortsBrokers" id="hideShortsBrokers" class="form-check-input">
-					<label for="hideShortsBrokers">Скрыть инфу, у каких брокеров есть бумага в шорт, в окне ввода заявки.</label>
 				</div>
 			</div>
 

@@ -674,68 +674,97 @@ function kvtRun() {
                     }
                 }            
             }
-
-            
-            /**
-             * Генерим быстрые переходы к группе по тикеру из разных виджетов
-             */
-            for (let node of mutation.addedNodes) {                
-                if (!(node instanceof HTMLElement)) continue; // only html elemtnts, NO text
-                
-                if (node.hasAttribute('data-index') && node.hasAttribute('data-known-size') && node.hasAttribute('data-index-in-group') ) {
-
-                    if (node.tagName === 'DIV') {
-                        if (node.firstChild.matches('[class*="src-modules-Orders-containers-styles-item-"]')) {
-                            // Активные заявки
-                            let item = node.firstChild.querySelector('.UICard')
-                            item.setAttribute('data-kvt-itemSTIG-load', '')
-    
-                            let stig = createSTIGline(item.getAttribute('data-symbol-id'))
-    
-                            if (stig) {
-                                item.querySelector('[class*=src-modules-Orders-containers-components-styles-header-]').insertAdjacentElement("beforeend", stig)
-                            }
-                        } else if (node.firstChild.matches('[class*="src-modules-Timeline-containers-components-TimelineList-styles-wrapper-"]')) {
-                            // История операций
-                            let item = node.firstChild.querySelector('.UICard')
-                            item.setAttribute('data-kvt-itemSTIG-load', '')
-    
-                            let stig = createSTIGline(item.getAttribute('data-symbol-id'))
-    
-                            if (stig) {
-                                item.querySelector('[class*=src-components-TickerInfo-TickerInfo-container-]').insertAdjacentElement("beforeend", stig)
-                            }
-                        }
-                    } else if (node.tagName === 'TR') {
-                        node.setAttribute('data-kvt-itemSTIG-load', '')
-                        let symbol = node.getAttribute('data-symbol-id')
-                        let stig = createSTIGline(symbol)
-                        if (stig) {
-                            node.firstChild.insertAdjacentElement("beforeend", stig)
-                        }
-                        console.log(symbol)
-                    }
-                    
-                } else if (node.tagName === 'TBODY' && node.getAttribute('data-test-id') === "virtuoso-viewport") {
-                    // Вставляем список в виджете инструменты
-
-                    // перебираем элементы
-                    node.querySelectorAll('tr').forEach(tr => {
-                        tr.setAttribute('data-kvt-itemSTIG-load', '')
-                        let symbol = tr.getAttribute('data-symbol-id')
-                        let stig = createSTIGline(symbol)
-                        if (stig) {
-                            tr.firstChild.insertAdjacentElement("beforeend", stig)
-                        }
-                    })
-                }
-            }
-
         }
     }).observe(document.body, {
         childList: true,
         subtree: true
     })
+
+
+    /**
+     * Генерим быстрые переходы к группе по тикеру из разных виджетов
+     */
+    if (kvtSettings.fastSTIG) {
+
+        new MutationObserver(function (mutationsList, observer) {
+            for (let mutation of mutationsList) {
+                
+                for (let node of mutation.addedNodes) {
+                    if (!(node instanceof HTMLElement)) continue; // only html elemtnts, NO text
+                    
+                    if (node.hasAttribute('data-index') && node.hasAttribute('data-known-size') && node.hasAttribute('data-index-in-group') ) {
+    
+                        if (node.tagName === 'DIV') {
+                            if (node.firstChild.matches('[class*="src-modules-Orders-containers-styles-item-"]')) {
+                                // Активные заявки
+                                let item = node.firstChild.querySelector('.UICard')
+                                item.setAttribute('data-kvt-itemSTIG-load', '')
+        
+                                let stig = createSTIGline(item.getAttribute('data-symbol-id'))
+        
+                                if (stig) {
+                                    item.querySelector('[class*=src-modules-Orders-containers-components-styles-header-]').insertAdjacentElement("beforeend", stig)
+                                }
+                            } else if (node.firstChild.matches('[class*="src-modules-Timeline-containers-components-TimelineList-styles-wrapper-"]')) {
+                                // История операций
+                                let item = node.firstChild.querySelector('.UICard')
+                                item.setAttribute('data-kvt-itemSTIG-load', '')
+        
+                                let stig = createSTIGline(item.getAttribute('data-symbol-id'))
+        
+                                if (stig) {
+                                    item.querySelector('[class*=src-components-TickerInfo-TickerInfo-container-]').insertAdjacentElement("beforeend", stig)
+                                }
+                            }
+                        } else if (node.tagName === 'TR') {
+                            node.setAttribute('data-kvt-itemSTIG-load', '')
+                            let symbol = node.getAttribute('data-symbol-id')
+                            let stig = createSTIGline(symbol)
+                            if (stig) {
+                                node.firstChild.insertAdjacentElement("beforeend", stig)
+                            }
+                        }
+                        
+                    } else if (node.tagName === 'TBODY' && node.getAttribute('data-test-id') === "virtuoso-viewport") {
+                        // Вставляем список в виджете инструменты
+    
+                        // перебираем элементы
+                        node.querySelectorAll('tr').forEach(tr => {
+                            tr.setAttribute('data-kvt-itemSTIG-load', '')
+                            let symbol = tr.getAttribute('data-symbol-id')
+                            let stig = createSTIGline(symbol)
+                            if (stig) {
+                                tr.firstChild.insertAdjacentElement("beforeend", stig)
+                            }
+                        })
+                    }
+                }
+    
+            }
+        }).observe(document.body, {
+            childList: true,
+            subtree: true
+        })
+    
+        new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes') {
+                    // при смене data-symbol-id у tr item в "инструменты" и "портфель"
+                    if (mutation.target.tagName === 'TR' && mutation.target.hasAttribute('data-index') && mutation.target.hasAttribute('data-known-size') && mutation.target.hasAttribute('data-index-in-group') ) {
+                        let symbol = mutation.target.getAttribute('data-symbol-id')
+                        let stig = createSTIGline(symbol)
+                        if (stig) {
+                            mutation.target.firstChild.insertAdjacentElement("beforeend", stig)
+                        }
+                    }
+                }
+            })
+        }).observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributeFilter: ['data-symbol-id']
+        }) 
+    }
 
     kvt.widgetsLoad()
 
@@ -784,15 +813,6 @@ function kvtRun() {
 
                     if (prevSymbol !== symbol) {
                         kvt.getTickerInfo(mutation.target)
-                    }
-                }
-
-                // при смене data-symbol-id у tr item в "инструменты" и "портфель"
-                if (mutation.target.tagName === 'TR' && mutation.target.hasAttribute('data-index') && mutation.target.hasAttribute('data-known-size') && mutation.target.hasAttribute('data-index-in-group') ) {
-                    let symbol = mutation.target.getAttribute('data-symbol-id')
-                    let stig = createSTIGline(symbol)
-                    if (stig) {
-                        mutation.target.firstChild.insertAdjacentElement("beforeend", stig)
                     }
                 }
 

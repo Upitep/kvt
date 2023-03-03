@@ -442,12 +442,12 @@ span[data-kvt-volume]:hover {
     position: relative;
 }
 [data-widget-type="ORDERS_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
-    background: linear-gradient(-90deg,rgba(var(--pro-base-02),0) 0%,rgba(var(--pro-base-02),1) 36%,rgba(var(--pro-base-02),1));    
+    background: linear-gradient(-90deg,rgba(var(--pro-base-02),0) 0%,rgba(var(--pro-base-02),0.8) 36%,rgba(var(--pro-base-02),0.8));
 }
 
 /* в виджете "история операций" */
 [data-widget-type="TIMELINE_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
-    background: linear-gradient(-90deg,rgba(var(--pro-base-03),0) 0%,rgba(var(--pro-base-03),1) 36%,rgba(var(--pro-base-03),1));
+    background: linear-gradient(90deg, rgba(var(--pro-base-03),0.8) 0%, rgba(var(--pro-base-03),0.8) 80%, rgba(var(--pro-base-03),0) 100%);
 }
 [class*=src-modules-Timeline-containers-components-TimelineList-styles-main-] > div{
     position: relative;
@@ -455,9 +455,9 @@ span[data-kvt-volume]:hover {
 
 /* в виджете "инструменты" */
 [data-widget-type="MARKET_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
-    left: 52px;
-    background: linear-gradient(90deg, rgba(var(--pro-base-03),0) 0%, rgba(var(--pro-base-03),1) 10%, rgba(var(--pro-base-03),1) 90%, rgba(var(--pro-base-03),0) 100%);
-    padding: 0 15px 0 6px;
+    left: 52px;    
+    background: linear-gradient(90deg, rgba(var(--pro-base-03),0) 0%, rgba(var(--pro-base-03),0.8) 10%, rgba(var(--pro-base-03),0.8) 90%, rgba(var(--pro-base-03),0) 100%);
+    padding: 0 15px 0 10px;
 }
 
 /* в виджете "портфолио" */
@@ -465,8 +465,9 @@ span[data-kvt-volume]:hover {
     top: 0;
 }
 [data-widget-type="PORTFOLIO_WIDGET"] [data-kvt-itemSTIG-load] .getdp-stigButtons {
-    left: 0;
-    background: linear-gradient(-90deg,rgba(var(--pro-base-03),0) 0%,rgba(var(--pro-base-03),1) 36%,rgba(var(--pro-base-03),1));
+    left: 52px;    
+    background: linear-gradient(90deg, rgba(var(--pro-base-03),0) 0%, rgba(var(--pro-base-03),0.8) 10%, rgba(var(--pro-base-03),0.8) 90%, rgba(var(--pro-base-03),0) 100%);
+    padding: 0 15px 0 10px;
 }
 
 

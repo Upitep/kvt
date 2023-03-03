@@ -111,6 +111,46 @@ label {
     margin-bottom: 0;
 }
 
+/**
+* hint
+*/
+/* .label-hint {
+    position: relative;
+} */
+.hint{
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
+    margin-left: 2px;
+    display: inline-block;    
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' x='0px' y='0px' width='16' height='16' viewBox='0 0 16 16'%3E%3Cg fill='%23616977' id='help_2_'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm1-6.02c0-.02.02-.03.08-.05l.17-.1.22-.1c1-.54 1.53-1.27 1.53-2.59A3.07 3.07 0 0 0 8 3C6.38 3 5 4.02 5 5.5a1 1 0 0 0 2 0c0-.22.38-.5 1-.5.54 0 1 .5 1 1.14 0 .5-.08.6-.47.82l-.2.1C7.45 7.52 7 8.01 7 9a1 1 0 1 0 2-.02ZM9 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'%3E%3C/path%3E%3C/g%3E%3C/svg%3E");    
+}
+.hint span{
+    position: absolute;
+    margin-top: 20px;
+    margin-left: 0;
+    left: 0;
+    font-size: 12px;
+    padding: 8px;
+    background: #d9d9d9;
+    display: none;
+    box-shadow: 0px 2px 4px rgb(0 0 0 / 30%);
+    line-height: 18px;
+    z-index: 1;
+    contain: layout;
+    border: 1px solid #c9c9c9;
+    width: 400px;
+}
+.hint:hover {
+    cursor: pointer;
+}
+.hint:hover span {
+    display:inline-block;
+}
+
+/**
+* Кнопки
+*/
 .btn {
     background: #eee;
     border: 1px solid #939393;
