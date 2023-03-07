@@ -1082,12 +1082,12 @@ function kvtCreateWidget(widget) {
             localStorage.setItem("_kvt-widgets", JSON.stringify(storageWidgets))
             
             if (widgetType === 'spbTS') {
-                if (kvtSettings['styleTS']) {
-                    widget.classList.add(`styleTS_${kvtSettings['styleTS']}`)
-                }
-
                 initWidget(widget, widgetType, symbol)
                 kvtd ?? console.log('[kvt][spbTS]', 'хотим подписаться на ', widgetID, symbol)
+
+                if (kvtSettings['styleTS']) {
+                    widget.querySelector('.kvt-widget').classList.add(`styleTS_${kvtSettings['styleTS']}`)
+                }
                 
                 if (symbol.length) {
                     kvtd ?? console.warn('subscribe_TS_3')
