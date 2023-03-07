@@ -812,6 +812,8 @@ function kvtRun() {
                     let prevSymbol = mutation.oldValue
 
                     if (prevSymbol !== symbol) {
+                        kvt.addFastVolumeSizeButtons(mutation.target)
+                        kvt.addFastVolumePriceButtons(mutation.target)
                         kvt.getTickerInfo(mutation.target)
                     }
                 }
