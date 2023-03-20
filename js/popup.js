@@ -376,7 +376,7 @@ async function run() {
                             nl(tc, e)                            
 
                             let paymentVal = e.payment.value
-                            "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
+                            //FIXME: "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
                                 
                             tickers[tc]["Сделок продажи"]++;
                             tickers[tc]["Сумма продаж"] += Math.abs(paymentVal || 0)
@@ -395,7 +395,7 @@ async function run() {
                             nl(tc, e)
 
                             let paymentVal = e.payment.value
-                            "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
+                            // FIXME: "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
                                                         
                             tickers[tc]["Сделок покупки"]++;                            
                             tickers[tc]["Сумма покупок"] += Math.abs(paymentVal || 0);
@@ -414,6 +414,18 @@ async function run() {
                         case 'accruingVarMargin' : {
                             currs(c)                           
                             corrss[c]['Маржа'] += Math.abs(e.payment.value || 0)
+
+                            // FIXME:
+                            /* e.childOperations.forEach(fut => {
+                                tc = `${fut.ticker}_Pt.`
+                                nl(tc, e, 'futures')
+
+                                tickers[fut.ticker]["Профит фьюч"] += Math.abs(fut.value || 0);                                
+                            }) */
+
+                            //accruingVarMarginInstrument
+                            //writingOffVarMarginInstrument
+
                             break
                         }
 
@@ -601,6 +613,7 @@ async function run() {
                 ts["Комиссия"] = 0;
                 ts["Сумма покупок"] = 0;
                 ts["Сумма продаж"] = 0;
+                ts["Профит фьюч"] = 0; // для фьючей
                 ts["Сделок покупки"] = 0;
                 ts["Сделок продажи"] = 0;
                 ts["Количество"] = 0;
@@ -991,7 +1004,7 @@ async function loadPrintsTicker(onlyDownload = 0) {
     if (printTicker) {
         printsWindow.innerHTML  = 'Загрузка...';
 
-        await fetch(`https://kvalood.ru/trades?token=${kvtSettings.kvtToken}&ticker=${printTicker}&date=${printDate}`, {}
+        await fetch(`https://kvalood.ru/trades?token=${kvtSettings.kvtToken}&symbol=${printTicker}&date=${printDate}`, {}
         ).then(e => {
             return e.json()            
         }).then(res => {

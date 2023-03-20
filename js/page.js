@@ -7,7 +7,7 @@ let kvtd = false,
         kvts: {},
         rcktMon: {}
     },
-    kvtTickerInfo = {},
+    kvtSymbolInfo = {},
     kvtGroups = {
         1: "rgb(255, 212, 80)",
         2: "rgb(255, 123, 118)",
@@ -47,7 +47,7 @@ let kvtd = false,
         getdp: {
             name: 'GETDP',
             icon: '',
-            template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Ticker</th><th>Size</th><th>Price</th><th>Vol.$</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
+            template: '<div class="kvt-widget"><div class="kvt-widget-inner"><table class="kvt-widget-table"><thead><tr><th>Symb</th><th>Size</th><th>Price</th><th>Vol.$</th><th>Time</th></tr></thead><tbody class="kvt-widget-content"></tbody></table></div></div>',
             templateItem: (jd) => {
                 let line = document.createElement('tr');
                 line.classList.add(`type-${jd.side}`);
@@ -104,16 +104,16 @@ class KvaloodTools {
 
     /**
      * Установим тикер в группу     * 
-     * @param {*} ticker 
+     * @param {*} symbol 
      * @param {*} group_id 
      * @param {*} type При указании type, устанавливает быстрый объём
      * @returns 
      */
-    setTickerInGroup(ticker, group_id, type) {
+    setSymbolInGroup(symbol, group_id, type) {
         let widget = kvt.getGroupWidget(group_id);
     
         if (!widget) {
-            kvtd ?? console.error(`[kvt][setTickerInGroup] Виджет не найден. ${ticker} ${group_id} ${type}`)
+            kvtd ?? console.error(`[kvt][setSymbolInGroup] Виджет не найден. ${symbol} ${group_id} ${type}`)
             return null;
         }
         let reactObjectName = Object.keys(widget).find(function (key) {
@@ -124,17 +124,17 @@ class KvaloodTools {
             return typeof child === 'object' && child !== null
         })
     
-        target && target._owner.memoizedProps.selectSymbol(ticker)
+        target && target._owner.memoizedProps.selectSymbol(symbol)
     
         if (type) {
-            this.setFastSum(widget, ticker, type)
+            this.setFastSum(widget, symbol, type)
         }
     }
 
     /**
      * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
      */
-    async setFastSum (widget, ticker, type) {
+    async setFastSum (widget, symbol, type) {
         let sum;
 
         if (kvtSettings[type]) {
@@ -150,12 +150,12 @@ class KvaloodTools {
             })
         }        
 
-        if (window.__kvtFastSumRelation && window.__kvtFastSumRelation[ticker]) {
-            sum = window.__kvtFastSumRelation[ticker]
+        if (window.__kvtFastSumRelation && window.__kvtFastSumRelation[symbol]) {
+            sum = window.__kvtFastSumRelation[symbol]
         }
 
         if (sum) {
-            let {price, lot_size} = await this.getSymbolPriceLot(widget, ticker);
+            let {price, lot_size} = await this.getSymbolPriceLot(widget, symbol);
 
             this.setFastVolume(widget, (sum / price / lot_size).toFixed());       
         }
@@ -166,7 +166,7 @@ class KvaloodTools {
      * @param {*} widget 
      * @returns 
      */
-    async getSymbolPriceLot(widget, ticker) {
+    async getSymbolPriceLot(widget, symbol) {
         let price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
             lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,""),
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
@@ -177,7 +177,7 @@ class KvaloodTools {
                 kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
             }
 
-            future_price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+            future_price = await kvt.getFullPriceLimit(symbol, price, kvtSettings.brokerAccountId);                            
             kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${future_price}`)
         }
 
@@ -266,9 +266,9 @@ class KvaloodTools {
                 kvtSettings.brokerAccountId = await kvt.getBrokerAccounts()
             }
 
-            let ticker = widget.getAttribute('data-symbol-id')
+            let symbol = widget.getAttribute('data-symbol-id')
 
-            future_price = await kvt.getFullPriceLimit(ticker, price, kvtSettings.brokerAccountId);                            
+            future_price = await kvt.getFullPriceLimit(symbol, price, kvtSettings.brokerAccountId);                            
             kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${future_price}`)
         }
 
@@ -390,18 +390,18 @@ class KvaloodTools {
      * Запрос на информацию о тикере (у каких брокеров шорты итд.)
      * @param {*} widget 
      */
-    getTickerInfo(widget) {
-        kvtd ?? console.log('[kvt][getTickerInfo]', widget, widget.getAttribute("data-symbol-id"))
+    getSymbolInfo(widget) {
+        kvtd ?? console.log('[kvt][getSymbolInfo]', widget, widget.getAttribute("data-symbol-id"))
 
         if (window.__kvtWS && window.__kvtWS.readyState === 1) {                
             let widgetId = widget.getAttribute('data-widget-id');
-            kvtTickerInfo[widgetId] = kvth.uuidv4();
+            kvtSymbolInfo[widgetId] = kvth.uuidv4();
 
             window.__kvtWS.send(JSON.stringify({
                 user_id: kvtSettings.telegramId,
-                type: 'tickerInfo',
+                type: 'symbolInfo',
                 symbol: widget.getAttribute("data-symbol-id"),
-                guid: kvtTickerInfo[widgetId] 
+                guid: kvtSymbolInfo[widgetId] 
             }));
 
             let block = widget.querySelector('.kvt-shortsBrokers')
@@ -409,10 +409,10 @@ class KvaloodTools {
         } else {
             if (this.getState('kvts') !== 0) {
                 setTimeout(function(){
-                    kvt.getTickerInfo(widget)
+                    kvt.getSymbolInfo(widget)
                 }, 700)
             }
-            kvtd ?? console.log('[kvt][getTickerInfo]', 'Нет данных, сокет не готов')
+            kvtd ?? console.log('[kvt][getSymbolInfo]', 'Нет данных, сокет не готов')
         }
     }
 
@@ -670,7 +670,7 @@ function kvtRun() {
                         el.classList.add('kvt-widget-load')
                         kvt.addFastVolumeSizeButtons(el)
                         kvt.addFastVolumePriceButtons(el)
-                        kvt.getTickerInfo(el)
+                        kvt.getSymbolInfo(el)
                     }
                 }            
             }
@@ -799,7 +799,7 @@ function kvtRun() {
             widget.classList.add('kvt-widget-load')
             kvt.addFastVolumeSizeButtons(widget)
             kvt.addFastVolumePriceButtons(widget)
-            kvt.getTickerInfo(widget)
+            kvt.getSymbolInfo(widget)
         })
     }
 
@@ -814,7 +814,7 @@ function kvtRun() {
                     if (prevSymbol !== symbol) {
                         kvt.addFastVolumeSizeButtons(mutation.target)
                         kvt.addFastVolumePriceButtons(mutation.target)
-                        kvt.getTickerInfo(mutation.target)
+                        kvt.getSymbolInfo(mutation.target)
                     }
                 }
 
@@ -857,7 +857,7 @@ function kvt_connect(resubscribe = false) {
         // Переподписка на Getdp
         if (window.__kvtGetdp && resubscribe) {
             for (let item of window.__kvtGetdp) {
-                subscribe_getdp(item.widgetId, item.ticker, item.guid)
+                subscribe_getdp(item.widgetId, item.symbol)
             }
         }
 
@@ -865,7 +865,7 @@ function kvt_connect(resubscribe = false) {
         if (window.__kvtTs && resubscribe) {
             for (let item of window.__kvtTs) {
                 kvtd ?? console.warn('subscribe_TS_5')
-                subscribe_TS(item.widgetId, item.ticker, item.guid)
+                subscribe_TS(item.widgetId, item.symbol, item.guid)
             }
         }
 
@@ -877,21 +877,21 @@ function kvt_connect(resubscribe = false) {
             let msg = JSON.parse(message.data);
 
             switch (msg.type) {
-                case 'setTicker':
-                    kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumBot')
+                case 'setSymbol':
+                    kvt.setSymbolInGroup(msg.symbol, msg.group, 'kvtSTIGFastVolSumBot')
                     break
 
-                case 'getLastTrades': {
-                    let obj = getKvtTsByGuid(msg.guid)
-                    if (msg.data && obj) {
-                        insetItemsContent(obj.widgetId, msg.data)
-                    }
-
-                    break;
+                case 'ts': {
+                    if (msg.data && msg.symbol && window.__kvtTs) {
+                        let objs = window.__kvtTs.filter(item => item.symbol === msg.symbol)
+                        objs.forEach(w => {
+                            insetItemsContent(w.widgetId, msg.data)
+                        })
+                    }                    
                 }
 
-                case 'tickerInfo': {
-                    let widgetId = Object.keys(kvtTickerInfo).find(key => kvtTickerInfo[key] === msg.guid),
+                case 'symbolInfo': {
+                    let widgetId = Object.keys(kvtSymbolInfo).find(key => kvtSymbolInfo[key] === msg.guid),
                         widget = document.querySelector('[data-widget-id="'+ widgetId +'"]')
 
                     if (widget && msg.data) {
@@ -926,10 +926,12 @@ function kvt_connect(resubscribe = false) {
                 }
 
                 case 'getdp': {
-                    let obj = window.__kvtGetdp.find(item => item.guid === msg.guid)
-                    if (msg.data) {
-                        kvtd ?? console.warn('insetItemsContent_3 getdp')
-                        insetItemsContent(obj.widgetId, msg.data)
+                    if (msg.data && window.__kvtGetdp) {                        
+                        let objs = window.__kvtGetdp.filter(item => (msg.symbol && item.symbol === msg.symbol) || (!msg.symbol && !item.symbol))
+    
+                        objs.forEach(w => {
+                            insetItemsContent(w.widgetId, msg.data)
+                        })
                     }
 
                     break;
@@ -976,7 +978,7 @@ function rcktMonConnect() {
     window.__RcktMonWS.onmessage = (message) => {
         const msg = JSON.parse(message.data);
         kvtd ?? console.log('[kvt][RcktMon ws][Message]', msg);
-        kvt.setTickerInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumRcktMon');
+        kvt.setSymbolInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumRcktMon');
     }
 
     window.__RcktMonWS.onclose = (event) => {
@@ -1002,14 +1004,14 @@ function rcktMonConnect() {
 
 
 
-function createSTIGline(ticker) {
+function createSTIGline(symbol) {
     !window.__kvtWidgetGroups ? window.__kvtWidgetGroups = kvt.getActiveGroupsWidget() : 0
 
-    if (window.__kvtWidgetGroups.length && ticker && ticker !== 'mainCurrency') {
+    if (window.__kvtWidgetGroups.length && symbol && symbol !== 'mainCurrency') {
         let el = document.createElement('div');
         el.classList.add('getdp-stigButtons')
         for (let i of window.__kvtWidgetGroups) {    
-            el.insertAdjacentElement("beforeEnd", createVel(ticker, i));        
+            el.insertAdjacentElement("beforeEnd", createVel(symbol, i));        
         }
         el.onclick = e => {
             e.stopPropagation();
@@ -1021,7 +1023,7 @@ function createSTIGline(ticker) {
 }
 
 
-function createSTIG(ticker) {
+function createSTIG(symbol) {
 
     let groups = kvt.getActiveGroupsWidget()
 
@@ -1038,12 +1040,12 @@ function createSTIG(ticker) {
         }
 
         for (let i of groups) {
-            el.insertAdjacentElement("beforeEnd", createVel(ticker, i));
+            el.insertAdjacentElement("beforeEnd", createVel(symbol, i));
         }
     }
 }
 
-function createVel(ticker, groupId) {
+function createVel(symbol, groupId) {
     let vel = document.createElement('div')
 
     vel.className = 'kvt-stig-item';
@@ -1052,7 +1054,7 @@ function createVel(ticker, groupId) {
 
     vel.onclick = e => {
         e.stopPropagation();
-        kvt.setTickerInGroup(ticker, groupId, 'vel')
+        kvt.setSymbolInGroup(symbol, groupId, 'vel')
     }
 
     return vel;
@@ -1095,7 +1097,7 @@ function kvtCreateWidget(widget) {
                     kvtd ?? console.warn('subscribe_TS_3')
                     subscribe_TS(widgetID, symbol)
                 }
-                observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
+                observeWidgetChangeSymbol(widget, widgetType, (newSymbol) => {
                     unsubscribe_TS(widgetID);
                     kvtd ?? console.warn('subscribe_TS_4')
                     subscribe_TS(widgetID, newSymbol);
@@ -1106,7 +1108,7 @@ function kvtCreateWidget(widget) {
             if (widgetType === 'getdp') {
                 initWidget(widget, widgetType, symbol)
                 subscribe_getdp(widgetID, symbol)
-                observeWidgetChangeTicker(widget, widgetType, (newSymbol) => {
+                observeWidgetChangeSymbol(widget, widgetType, (newSymbol) => {
                     unsubscribe_getdp(widgetID);                
                     subscribe_getdp(widgetID, newSymbol);
                 })
@@ -1228,14 +1230,14 @@ function insetItemsContent(widgetId, data) {
     }    
 }
 
-function observeWidgetChangeTicker(widget, widgetType, callback) {
+function observeWidgetChangeSymbol(widget, widgetType, callback) {
     new MutationObserver(mutations => {
         mutations.forEach(mutation => {
             if (mutation.type === 'attributes') {
                 let symbol = mutation.target.getAttribute('data-symbol-id')
                 let prevSymbol = mutation.oldValue
 
-                kvtd ?? console.log('[kvt][observeWidgetChangeTicker]', `newTicker: ${symbol}`, `prevTicker: ${prevSymbol}`)
+                kvtd ?? console.log('[kvt][observeWidgetChangeSymbol]', `newSymbol: ${symbol}`, `prevSymbol: ${prevSymbol}`)
 
                 if (prevSymbol !== symbol) {
                     initWidget(widget, widgetType, symbol)
@@ -1249,26 +1251,24 @@ function observeWidgetChangeTicker(widget, widgetType, callback) {
     })
 }
 
-async function subscribe_TS(widgetId, ticker, guid = '') {
+async function subscribe_TS(widgetId, symbol) {
     !window.__kvtTs ? window.__kvtTs = [] : 0
-    let obj = {widgetId: widgetId, guid: guid ? guid : kvth.uuidv4(), ticker: ticker}
+    let obj = {widgetId: widgetId, symbol: symbol}
 
     window.__kvtTs = window.__kvtTs.filter(i => i.widgetId !== widgetId);
     window.__kvtTs.push(obj)
 
-    kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.ticker)
+    kvtd ?? console.log('[kvt][subscribe_TS]', obj.widgetId, obj.symbol)
     
     if (window.__kvtWS && window.__kvtWS.readyState === 1) {
         window.__kvtWS.send(JSON.stringify({
-            user_id: kvtSettings.telegramId,
             type: 'subscribeTS',
-            ticker: ticker,
-            guid: obj.guid
+            symbol: symbol
         }));
     } else {
         if (kvt.getState('kvts') !== 0) {
             setTimeout(function(){
-                subscribe_TS(widgetId, ticker, obj.guid)
+                subscribe_TS(widgetId, symbol, obj.guid)
             }, 700)
         }
         kvtd ?? console.log('[kvt][subscribe_TS]', 'Не подписался, сокет не готов')
@@ -1280,13 +1280,16 @@ function unsubscribe_TS(widgetId) {
     kvtd ?? console.log('[kvt][unsubscribe_TS]', widgetId)
 
     let obj = window.__kvtTs ? window.__kvtTs.find(item => item.widgetId === widgetId) : 0
-
+    
     if (obj) {
-        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
+
+        // Вдруг на один и тот же тикер подписан несколько раз
+        let anotherSubs = window.__kvtTs ? window.__kvtTs.find(item => item.widgetId !== widgetId && item.symbol === obj.symbol) || false : false;
+
+        if (window.__kvtWS && window.__kvtWS.readyState === 1 && !anotherSubs) {
             window.__kvtWS.send(JSON.stringify({
-                user_id: kvtSettings.telegramId,
                 type: 'unsubscribeTS',
-                guid: obj.guid
+                symbol: obj.symbol
             }));
 
             kvtd ?? console.log('[kvt][unsubscribe_TS]', 'отписался от ', widgetId)
@@ -1298,10 +1301,10 @@ function unsubscribe_TS(widgetId) {
 }
 
 
-function subscribe_getdp(widgetId, ticker, guid) {
+function subscribe_getdp(widgetId, symbol) {
     !window.__kvtGetdp ? window.__kvtGetdp = [] : 0
 
-    let obj = {widgetId: widgetId, guid: guid ? guid : kvth.uuidv4(), ticker: ticker}
+    let obj = {widgetId: widgetId, symbol: symbol}
 
     window.__kvtGetdp = window.__kvtGetdp.filter(i => i.widgetId !== widgetId);
     window.__kvtGetdp.push(obj)
@@ -1311,17 +1314,15 @@ function subscribe_getdp(widgetId, ticker, guid) {
     // Запросим последние getdp записи    
     if (window.__kvtWS && window.__kvtWS.readyState === 1) {
         window.__kvtWS.send(JSON.stringify({
-            user_id: kvtSettings.telegramId,
             type: 'getdp',
-            ticker: ticker,
-            guid: obj.guid
+            symbol: symbol,
         }));
 
         kvtd ?? console.log('[kvt][subscribe_getdp]', 'подписался')
     } else {
         if (kvt.getState('kvts') !== 0) {
             setTimeout(function(){
-                subscribe_getdp(widgetId, ticker, obj.guid)
+                subscribe_getdp(widgetId, symbol)
             }, 200)
         }
         
@@ -1336,11 +1337,15 @@ function unsubscribe_getdp(widgetId) {
     let obj = window.__kvtGetdp ? window.__kvtGetdp.find(item => item.widgetId === widgetId) : 0
 
     if (obj) {
-        if (window.__kvtWS && window.__kvtWS.readyState === 1) {
+
+        // Вдруг на один и тот же тикер подписан несколько раз, или открыто несколько getdp без тикера 
+        let anotherSubs = window.__kvtGetdp ? window.__kvtGetdp.find(item => item.widgetId !== widgetId && (item.symbol === obj.symbol || item.symbol === '' && obj.symbol === '') ) || false : false;
+
+        if (window.__kvtWS && window.__kvtWS.readyState === 1 && !anotherSubs) {
             window.__kvtWS.send(JSON.stringify({
                 user_id: kvtSettings.telegramId,
                 type: 'unsubscribe',
-                guid: obj.guid
+                symbol: obj.symbol
             }));
 
             kvtd ?? console.log('[kvt][unsubscribe_getdp]', 'отписался от ', widgetId)

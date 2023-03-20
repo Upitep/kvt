@@ -79,6 +79,6 @@ class kvtHelper {
     
             ? (Math.abs(Number(val)) / 1.0e+3).toFixed(2).replace(/[.,]00$/, "") + "k"
     
-            : Math.abs(Number(val)).toFixed(2);  
+            : Math.abs(Number(val)).toFixed(2).replace(/[.,]00$/, "");  
     }
 }
