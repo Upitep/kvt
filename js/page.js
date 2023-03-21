@@ -1123,16 +1123,18 @@ function kvtCreateWidget(widget) {
                 widget.querySelector('.kvt-widget').insertAdjacentHTML("beforeend", '<div class="kvt-widget-settings"></div>')
                 let kws = widget.querySelector('.kvt-widget-settings')
 
-                kws.innerHTML = `<div class="pro-input-group"><label>Показывать принты лотностью от</label><input type="number" oninput="validity.valid||(value='');" name="lotSize_show" class="pro-input"></div><button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+                kws.innerHTML = `<div class="pro-input-group sectionItem"><label>Показывать real-time принты лотностью от</label><input type="number" oninput="validity.valid||(value='');" name="lotSize_show" class="pro-input"></div><button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+
+                // <label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="group_size_time"><span class="pro-control-indicator"></span>NAME  </label>
 
                 let settings_list = ['lotSize_show']
 
-                // заполняем настройки
+                // загружаем настройки
                 for (const id of settings_list) {
                     let el = kws.querySelector(`[name=${id}]`)
 
                     if (el.getAttribute('type') === 'checkbox') {
-                        
+                        el.checked = kvtWidgetsSettings[widgetID].settings[id] || false;
                     } else if (el.tagName === 'SELECT' && el.getAttribute('multiple') !== null) {
                         
                     } else if (el.getAttribute('type') === 'number') {
@@ -1151,7 +1153,7 @@ function kvtCreateWidget(widget) {
                         let el = kws.querySelector(`[name=${id}]`)
 
                         if (el.getAttribute('type') === 'checkbox') {
-                            
+                            kvtWidgetsSettings[widgetID]['settings'][id] = el.checked
                         } else if (el.tagName === 'SELECT' && el.getAttribute('multiple') !== null) {
                             
                         } else {

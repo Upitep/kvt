@@ -659,6 +659,9 @@ span[data-kvt-volume]:hover {
     display: none;
     padding: 10px 6px;
 }
+.kvt-widget-settings .sectionItem{
+    padding: 8px 0px;
+}
 .kvt-widget-settings .pro-input-group {
     display: flex;
     flex-direction: column;

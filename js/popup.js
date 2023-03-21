@@ -285,12 +285,9 @@ async function run() {
                 for (let i = 0; i < result.length; i++) {
                     let res = await kvtAlorGetInfoSymbol(result[i]['Тикер'], result[i]['exchange']);
 
-                    // Для SPBX, торгуя HKD акциями, * на лотность. На MOEX, в qty идёт кол-во акций, а не лотов.
-                    //if (result[i]['exchange'] !== 'MOEX') {
                     result[i]["Сумма продаж"] = result[i]["Сумма продаж"] * res.lotsize;
                     result[i]["Сумма покупок"] = result[i]["Сумма покупок"] * res.lotsize;
                     result[i]["Сумма открытой позы"] = result[i]["Сумма открытой позы"] * res.lotsize;
-                    //}
 
                     result[i]['Валюта'] = res.currency || 'USD';
                     currs(result[i]['Валюта']);
@@ -352,18 +349,13 @@ async function run() {
                     }
                 }
 
-                tinkoff_operations.reverse()
-
                 console.log(tinkoff_operations)
 
                 tinkoff_operations.forEach(e => {
                     "RUR" === e.payment.currency && (e.payment.currency="RUB");
-                    // DEL 'futures' === e.instrumentType && (e.payment.currency="Pt.")
 
                     let tc = `${e.ticker || e.isin}_${e.payment.currency || ''}`,
                         c = e.payment.currency || '';
-
-                    
 
                     if (e.instrumentType === 'futures') {
                         tc = `${e.ticker}_Pt.`
@@ -373,10 +365,9 @@ async function run() {
                     switch (e.type) {
                         case 'sell' : {
                             currs(c)
-                            nl(tc, e)                            
+                            nl(tc, e)
 
                             let paymentVal = e.payment.value
-                            //FIXME: "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
                                 
                             tickers[tc]["Сделок продажи"]++;
                             tickers[tc]["Сумма продаж"] += Math.abs(paymentVal || 0)
@@ -395,7 +386,6 @@ async function run() {
                             nl(tc, e)
 
                             let paymentVal = e.payment.value
-                            // FIXME: "futures" === e.instrumentType && (paymentVal = e.doneRest * e.price.value);
                                                         
                             tickers[tc]["Сделок покупки"]++;                            
                             tickers[tc]["Сумма покупок"] += Math.abs(paymentVal || 0);
@@ -505,10 +495,11 @@ async function run() {
 
                         // Выплата купонов по облигациям
                         case 'coupon' : {
+                            tc = `${e.isin}_${e.payment.currency || ''}_coupon`
                             currs(c)
-                            nl(tc+="_coupon", e, 'coupon');
+                            nl(tc, e, 'coupon');
 
-                            tickers[tc]["Сумма покупок"] = 0;
+                            tickers[tc]["Сумма покупок"] += 0;
                             tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Купоны'] += Math.abs(e.payment.value || 0)
                             break
@@ -516,8 +507,9 @@ async function run() {
 
                         // Удержание НДФЛ по купонам
                         case 'taxCpn' : {
+                            tc = `${e.isin}_${e.payment.currency || ''}_coupon`
                             currs(c)
-                            nl(tc+="_coupon", e, 'coupon');
+                            nl(tc, e, 'coupon');
                             
                             tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Купоны налог'] += Math.abs(e.payment.value || 0)
@@ -659,7 +651,7 @@ async function run() {
             }
         }
 
-        function generateTable (res) {
+        function generateTable (res) {              
     
             // Перебираем результат по тикерам, дополняя currs
             res.forEach(ticker => {
@@ -671,7 +663,10 @@ async function run() {
                     ticker["Сумма продаж"] += ticker["Сумма открытой позы"]
                 }
                 
-                corrss[currency]['Чистыми'] += ticker["Сумма продаж"] - ticker["Сумма покупок"] - ticker["Комиссия"]
+                if (ticker['type'] !== 'futures') {
+                    corrss[currency]['Чистыми'] += ticker["Сумма продаж"] - ticker["Сумма покупок"] - ticker["Комиссия"]
+                }
+                
                 corrss[currency]['Сделок покупки'] += ticker['Сделок покупки']
                 corrss[currency]['Сделок продажи'] += ticker['Сделок продажи']
                 corrss[currency]['Оборот'] += ticker['Сумма покупок'] + ticker['Сумма продаж']
@@ -768,7 +763,8 @@ async function run() {
                 '<th></th>' +
                 '</tr></thead><tbody>';
 
-            let flagPosition = 0 // флаг открытых позиций.            
+            let flagPosition = 0, // флаг открытых позиций.
+                flagFutures = 0; // Флаг для фьючей
 
             res.forEach(function (e) {
                 let profit = e["Сумма продаж"] - e["Сумма покупок"] - e["Комиссия"]
@@ -782,7 +778,7 @@ async function run() {
                 0 !== e["Количество"] && (cssClass = "yellow-bg", flagPosition = 1);
                 'coupon' === e["type"] && (cssClass = "blue-bg");
                 'dividend' === e["type"] && (cssClass = "purple-bg");
-                'futures' === e["type"] && (cssClass = "turquoise-bg");
+                'futures' === e["type"] && (cssClass = "turquoise-bg", flagFutures = 1);
                                 
                 table += `<tr class="${cssClass}">` +
                     `<td>${e['Тикер']}</td>` +
@@ -797,6 +793,9 @@ async function run() {
 
             if (flagPosition) {
                 table += '<div class="note">* открытые позиции не учитываются в результате и помечаются в таблице <span class="yellow-bg">цветом</span></div>'
+            }
+            if (flagFutures) {
+                table += '<div class="note">* Результат по фьючерсам см. в поле <span class="turquoise-bg">маржа</span>. В таблице результат ПРИБЛИЗИТЕЛЬНЫЙ.</div>'
             }
 
             reportWindow.innerHTML += table;
