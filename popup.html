@@ -24,19 +24,19 @@
 	<div class="content-tabs">
 		<!-- отчеты -->
 		<div id="reports" class="b-tab active">
-			<div class="form-inline row g-2">
-				<div class="form-group col-4">
+			<div class="form-inline" style="gap: 0.5rem;">
+				<div class="form-group">
 					<input type="datetime-local" id="fromDate" class="form-control">
 				</div>
-				<div class="form-group col-4">
+				<div class="form-group">
 					<input type="datetime-local" id="toDate" class="form-control">
 				</div>				
-				<div class="form-group col-2">
-					<select id="statsFor" class="form-control" style="width: 70px;" title="Выберите счёт по которому хотите загрузить статистику">
+				<div class="form-group">
+					<select id="statsFor" class="form-control" style="width: 90px;" title="Выберите счёт по которому хотите загрузить статистику">
 						<option value="">--Ти--</option>
 					</select>
 				</div>
-				<div class="col-2">
+				<div>
 					<button id="kvShowReport" class="btn">Загрузить</button>
 				</div>
 			</div>
@@ -76,6 +76,9 @@
 		
 		<!-- тикеры -->
 		<div id="tickers" class="b-tab">
+
+			<p class="mt-0 mb-2">Быстрое управление списком избранных бумаг. Группы предварительно должны быть созданы.</p>
+
 			<div class="form-group">
 				<button id="kvLoadGroupsTicker" class="btn">Загрузить группы и тикеры</button>
 				<!-- <button id="kvDownloadGroupsTicker" class="btn">Экспорт в *.json</button> -->
@@ -90,6 +93,7 @@
 				<div class="form-group">
 					<label for="groupTickersList" class="form-label">Список тикеров через пробел</label>
 					<textarea id="groupTickersList" class="form-control"></textarea>
+					<div class="form-text">Например: <i>TSLA BABA RIG GAZP SBER</i></div>
 				</div>
 				<div class="form-group">
 					<button id="saveGroupTickers" class="btn">Сохранить</button>
@@ -128,9 +132,9 @@
 
 			<hr/>
 			
-			<h3 class="mb-2">⚠️ Подключение к kvts. Регистрация в t.me/kvtsbot</h3>
+			<h3 class="mb-1">⚠️ Подключение к kvts <div class="hint"><span>Подключение к kvts позволяет получить доступ к: Лента принтов (T&S) СПБ и ММВБ, быстрые индексы в шапке, просмотр истории сделок по инструменту за конкретный день, итд.</span></div></h3>
 
-			<p class="mt-1 mb-2">Для получения ленты принтов (T&S) и других данных</p>
+			<p class="mt-0 mb-2"><a href="https://t.me/kvtsbot" target="_blank">Получить доступ t.me/kvtsbot</a></p>
 
 			<div class="form-group row g-2">
 				<div class="col-5">
@@ -138,7 +142,7 @@
 					<input type="text" name="telegramId" id="telegramId" class="form-control" placeholder="123456789">
 				</div>
 				<div class="col-7">
-					<label for="kvtToken" class="form-label">Токен для подключения к kvts</label>
+					<label for="kvtToken" class="form-label">Токен kvts</label>
 					<input type="text" name="kvtToken" id="kvtToken" class="form-control" placeholder="">
 				</div>
 			</div>
@@ -146,7 +150,7 @@
 			<hr/>
 
 			<div class="form-group">
-				<label for="kvtQuotes" class="form-label">Котировки индексов</label>
+				<label for="kvtQuotes" class="form-label">Котировки индексов в шапке <div class="hint"><span>Обновляются раз в секунду. </span></div></label>
 
 				<select id="kvtQuotes" class="form-control" style="width: 400px;" multiple>
 					<option value="US500">US500 - (SPX) S&P 500</option>
@@ -172,16 +176,15 @@
 					<option value="DXY">DXY - (DXY) US Dollar Index / Индекс доллара</option>
 				</select>
 
-				<div class="form-text"><b><i>системное_имя - описание</i></b>. Обновляются раз в секунду. Зажать ctrl + выбрать нужные</div>
+				<div class="form-text"><b><i>системное_имя - описание</i></b>. Зажать ctrl + выбрать нужные</div>
 
 			</div>
 
 			<div class="form-group">
 				<div class="form-check">
 					<input type="checkbox" id="compactQuotes" class="form-check-input">
-					<label for="compactQuotes">Компактное отображение индексов</label>
+					<label for="compactQuotes">Компактное отображение индексов <div class="hint"><span>Отображение только название котировки и процент. При наведении, покажется цена</i></span></div></label>
 				</div>
-				<div class="form-text">Отображение только название котировки и процент. При наведении, покажется цена</div>
 			</div>
 
 			<div class="form-group">				
@@ -193,25 +196,24 @@
 			<hr/>
 			
 			<div class="form-group">
-				<label for="kvtFastVolumePrice" class="form-label">Кнопки быстрого объема в деньгах ($/₽)</label>
+				<label for="kvtFastVolumePrice" class="form-label">Кнопки быстрого объема в деньгах ($/₽)
+					<div class="hint"><span>Быстрое заполнение объема в деньгах, в виджете заявки. <b>Указывать через запятую</b>, например "100000,50000"</span></div>
+				</label>
 				<input type="text" name="kvtFastVolumePrice" id="kvtFastVolumePrice" class="form-control" placeholder="100000,50000,25000,10000,5000">
-				<div class="form-text">Быстрое заполнение объема в деньгах, в виджете заявки. <b>Указывать через запятую</b>, например "100000,50000"</div>
 			</div>
 			
 			<div class="form-group">
 				<div class="form-check">
 					<input type="checkbox" name="kvtFastVolumePriceRound" id="kvtFastVolumePriceRound" class="form-check-input">
-					<label for="kvtFastVolumePriceRound">Округлять до 100 кнопки быстрого объема в $</label>
+					<label for="kvtFastVolumePriceRound">Округлять до 100 кнопки быстрого объема в $ <div class="hint"><span>Округление кол-ва бумаг до 100. <i>Прим. - не 547, а 500</i></span></div></label>
 				</div>
-				<div class="form-text">Округление кол-ва бумаг до 100. <i>Прим. - не 547, а 500</i></div>
 			</div>
 			
 			<hr/>
 			
 			<div class="form-group">
-				<label for="kvtFastVolumeSize" class="form-label">Кнопки быстрого объема в ШТ</label>
+				<label for="kvtFastVolumeSize" class="form-label">Кнопки быстрого объема в ШТ<div class="hint"><span>Быстрое заполнение объема в шт, в виджете заявки. <b>Указывать через запятую</b>, например "1000,500,100"</i></span></div></label>
 				<input type="text" name="kvtFastVolumeSize" id="kvtFastVolumeSize" class="form-control" placeholder="1000,500,100">
-				<div class="form-text">Быстрое заполнение объема в шт, в виджете заявки. <b>Указывать через запятую</b>, например "1000,500,100"</div>
 			</div>
 			
 			<hr/>
@@ -236,9 +238,9 @@
 			<div class="form-group">
 				<div class="form-check">
 					<input type="checkbox" name="rcktMonConnect" id="rcktMonConnect" class="form-check-input">
-					<label for="rcktMonConnect">Переключать тикеры из RcktMon</label>
+					<label for="rcktMonConnect">Переключать тикеры из RcktMon <div class="hint"><span>В программе RcktMon, при нажатии на цветные кнопки перехода к группе, открывать тикер в нужной группе. Доступны группы - 3 6 8 10 14</span></div></label>
 				</div>
-				<div class="form-text">В программе RcktMon, при нажатии на кругляшки с переходом к тикеру по группе, открывать тикер в нужной группе. Доступны группы - 3 6 8 10 14</div>
+				<div class="form-text"></div>
 			</div>
 			
 			<hr/>
@@ -246,14 +248,57 @@
 			<h3>Быстрый объем в деньгах при переходе к группе:</h3>
 			
 			<div class="form-group row g-2">
-				<div class="col-6">
-					<label for="kvtSTIGFastVolSumBot" class="form-label">из ботов</label>
-					<input type="text" name="kvtSTIGFastVolSumBot" id="kvtSTIGFastVolSumBot" class="form-control" placeholder="100000">
+				<div class="col-4">
+					<label class="form-label">в терминале<div class="hint"><span>нажимая на кнопки STIG</span></div></label>
+
+					<div class="input-group  mb-1">
+						<input type="text" name="StigFastSum_stig[rub]" class="form-control" placeholder="...">
+						<div class="input-group-text">₽</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_stig[usd]" class="form-control" placeholder="...">
+						<div class="input-group-text">$</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_stig[hkd]" class="form-control" placeholder="...">
+						<div class="input-group-text">HK$</div>
+					</div>
 				</div>
-				<div class="col-6">
-					<label for="kvtSTIGFastVolSumRcktMon" class="form-label">из RcktMon</label>
-					<input type="text" name="kvtSTIGFastVolSumRcktMon" id="kvtSTIGFastVolSumRcktMon" class="form-control" placeholder="500000">
+
+				<div class="col-4">
+					<label class="form-label">из telegram ботов</label>
+
+					<div class="input-group  mb-1">
+						<input type="text" name="StigFastSum_bot[rub]" class="form-control" placeholder="...">
+						<div class="input-group-text">₽</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_bot[usd]" class="form-control" placeholder="...">
+						<div class="input-group-text">$</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_bot[hkd]" class="form-control" placeholder="...">
+						<div class="input-group-text">HK$</div>
+					</div>
 				</div>
+
+				<div class="col-4">
+					<label class="form-label">из RcktMon</label>
+
+					<div class="input-group  mb-1">
+						<input type="text" name="StigFastSum_rcktmon[rub]" class="form-control" placeholder="...">
+						<div class="input-group-text">₽</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_rcktmon[usd]" class="form-control" placeholder="...">
+						<div class="input-group-text">$</div>
+					</div>
+					<div class="input-group mb-1">
+						<input type="text" name="StigFastSum_rcktmon[hkd]" class="form-control" placeholder="...">
+						<div class="input-group-text">HK$</div>
+					</div>
+				</div>
+
 				<div class="col-12">
 					<label for="kvtFastSumRelation" class="form-label">Подстановка заранее указанного объёма для конкретных тикеров при переходе к тикеру из RcktMon, telegram ботов или кнопкок "STIG" в терминале</label>
 					<textarea id="kvtFastSumRelation" class="form-control" placeholder="BABA:15000,TCSG:100000,MOEX:25000"></textarea>

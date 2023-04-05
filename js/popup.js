@@ -73,7 +73,7 @@ async function run() {
     }
 
     // input & checkbox set&get settings
-    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtSTIGFastVolSumBot', 'kvtSTIGFastVolSumRcktMon', 'kvtFastSumRelation', 'compactStyle', 'fastSTIG', 'styleTS', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
+    for (const key of ['fromDate', 'toDate', 'telegramId', 'kvtToken', 'kvtQuotes', 'compactQuotes', 'customNameQuotes', 'alorToken', 'alorPortfolio', 'kvtFastVolumePrice', 'kvtFastVolumeSize', 'kvtFastSumRelation', 'compactStyle', 'fastSTIG', 'styleTS', 'rcktMonConnect', 'kvtFastVolumePriceRound', 'hideShortsBrokers', 'statsFor', 'printTicker', 'printMinQty', 'debug']) {
         let el = document.getElementById(key),
             val = await getObjectFromLocalStorage(key)
 
@@ -117,6 +117,43 @@ async function run() {
                 saveObjectInLocalStorage(obj);
             }
         }
+    }
+
+    /**
+     * array input & checkbox 
+     */ 
+    for (const key of ['StigFastSum_stig', 'StigFastSum_bot', 'StigFastSum_rcktmon']) {
+        let elemtnts = document.querySelectorAll(`input[name^=${key}]`),
+            val = await getObjectFromLocalStorage(key) || {}
+
+        elemtnts.forEach(el => {
+            let keyName = el.name.match(/\[(.*)\]/)[1]
+           
+            if (val[keyName]) {
+                el.value = val[keyName]
+            }
+
+            el.onchange = function () {
+                let obj = {}
+                obj[key] = getInputsValuesByKey(key)
+
+                saveObjectInLocalStorage(obj);
+            }
+        })
+    }
+
+    function getInputsValuesByKey(key) {
+        let elemtnts = document.querySelectorAll(`input[name^=${key}]`),
+            values = {};
+
+        elemtnts.forEach(el => {            
+            let keyName = el.name.match(/\[(.*)\]/)[1]
+            if (el.value) {
+                values[keyName] = el.value;
+            }          
+        })
+
+        return values;
     }
 
     // set default value firs time
@@ -651,7 +688,7 @@ async function run() {
             }
         }
 
-        function generateTable (res) {              
+        function generateTable (res) {    
     
             // Перебираем результат по тикерам, дополняя currs
             res.forEach(ticker => {
