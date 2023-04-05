@@ -58,7 +58,7 @@ let kvtd = false,
 
                 let stig = createSTIGline(jd.symbol);
                 
-                stig && line.querySelector('.item-timestamp').insertAdjacentElement('beforeEnd', stig);
+                stig && line.querySelector('.item-ticker').insertAdjacentElement('beforeEnd', stig);
                 return line;
             },
             unsubscribe: unsubscribe_getdp
@@ -135,10 +135,13 @@ class KvaloodTools {
      * Установим быстрый объём при переходе к тикеру из бота или рокетмуна
      */
     async setFastSum (widget, symbol, type) {
-        let sum;
+        let assetSymbol = this.getWidgetAssetDetail(widget),
+            targetSum = 0,
+            currencies = {'PIPS': 'rub'},
+            currency = currencies[assetSymbol.currency] ? currencies[assetSymbol.currency] : assetSymbol.currency;        
 
-        if (kvtSettings[type]) {
-            sum = kvtSettings[type]
+        if (kvtSettings[type] && kvtSettings[type][currency]) {
+            targetSum = kvtSettings[type][currency]
         }
 
         // Заранее указанный объём в деньгах для конкретных тикеров
@@ -151,13 +154,12 @@ class KvaloodTools {
         }        
 
         if (window.__kvtFastSumRelation && window.__kvtFastSumRelation[symbol]) {
-            sum = window.__kvtFastSumRelation[symbol]
+            targetSum = window.__kvtFastSumRelation[symbol]
         }
 
-        if (sum) {
-            let {price, lot_size} = await this.getSymbolPriceLot(widget, symbol);
-
-            this.setFastVolume(widget, (sum / price / lot_size).toFixed());       
+        if (targetSum) {
+            let {price} = await this.getSymbolPriceLot(widget, symbol);
+            this.setFastVolume(widget, (targetSum / price / assetSymbol.lotSize).toFixed());       
         }
     }
 
@@ -181,7 +183,7 @@ class KvaloodTools {
             kvtd ?? console.log(`[kvt] стоимость фьча html=${price_block}, и из запроса=${future_price}`)
         }
 
-        return {price, future_price, lot_size}
+        return {price, future_price}
     }
 
     /**
@@ -417,20 +419,20 @@ class KvaloodTools {
     }
 
     /**
-     * // DEL: не используется
-     * Информация о тикере спрятанная в react
-     * @param {*} widgetId 
+     * Информация о тикере, лотность, биржа, итд.
+     * @param {*} widget 
      * @returns 
      */
-    getSymbolDetail(widgetId) {
-        let el = document.querySelector(`[data-widget-id="${widgetId}"] [class*="src-core-components-WidgetBody-WidgetBody-search"] > span > span`);
-        if (el) {
-            let reactObjectName = Object.keys(el).find(function (key) {
-                return key.startsWith("__reactFiber$")
-            });
-            
-            return el[reactObjectName].memoizedProps.children._owner.memoizedProps.selected
-        }
+    getWidgetAssetDetail(widget) {
+        let reactObjectName = Object.keys(widget).find(function (key) {
+            return key.startsWith("__reactFiber$")
+        });
+        
+        let target = widget[reactObjectName].memoizedProps.children.find(function (child) {
+            return typeof child === 'object' && child !== null
+        })
+
+        return target && target._owner.memoizedProps.asset || null
     }
 
     /**
@@ -878,7 +880,7 @@ function kvt_connect(resubscribe = false) {
 
             switch (msg.type) {
                 case 'setSymbol':
-                    kvt.setSymbolInGroup(msg.symbol, msg.group, 'kvtSTIGFastVolSumBot')
+                    kvt.setSymbolInGroup(msg.symbol, msg.group, 'StigFastSum_bot')
                     break
 
                 case 'ts': {
@@ -978,7 +980,7 @@ function rcktMonConnect() {
     window.__RcktMonWS.onmessage = (message) => {
         const msg = JSON.parse(message.data);
         kvtd ?? console.log('[kvt][RcktMon ws][Message]', msg);
-        kvt.setSymbolInGroup(msg.ticker, msg.group, 'kvtSTIGFastVolSumRcktMon');
+        kvt.setSymbolInGroup(msg.ticker, msg.group, 'StigFastSum_rcktmon');
     }
 
     window.__RcktMonWS.onclose = (event) => {
@@ -1054,7 +1056,7 @@ function createVel(symbol, groupId) {
 
     vel.onclick = e => {
         e.stopPropagation();
-        kvt.setSymbolInGroup(symbol, groupId, 'vel')
+        kvt.setSymbolInGroup(symbol, groupId, 'StigFastSum_stig')
     }
 
     return vel;
@@ -1103,6 +1105,8 @@ function kvtCreateWidget(widget) {
                     subscribe_TS(widgetID, newSymbol);
                 })
                 onClose = unsubscribe_TS
+
+                generateSettings(widget, widgetType, widgetID)
             }
     
             if (widgetType === 'getdp') {
@@ -1113,21 +1117,47 @@ function kvtCreateWidget(widget) {
                     subscribe_getdp(widgetID, newSymbol);
                 })
                 onClose = unsubscribe_getdp
+                
+                generateSettings(widget, widgetType, widgetID)
             }
 
-            // Настройки
-            if (widgetType === 'spbTS') {
-                let setting_btn = widget.querySelector('[class*="src-core-components-WidgetBody-WidgetBody-portalIcons-"]')    
+
+            function generateSettings(widget, widgetType, widgetID) {
+
+                let setting_btn = widget.querySelector('[class*="src-core-components-WidgetBody-WidgetBody-portalIcons-"]')
+
                 setting_btn.innerHTML = `<div class="src-containers-IconsPortal-styles-popoverTarget-3etvx"><div class="pro-popover-content"><span data-qa-tag="icon" data-qa-icon="settings-small-filled" class="src-containers-IconsPortal-styles-icon-2TlS0 pro-icon-interactive pro-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="rgb(var(--pro-icon-color))" fill-rule="evenodd" clip-rule="evenodd" d="M7 14a6 6 0 0 0 2 0v-2a4 4 0 0 0 1 0l1 1a6 6 0 0 0 2-2l-1-1a4 4 0 0 0 0-1h2V8a6 6 0 0 0 0-1h-2a4 4 0 0 0 0-1l1-1-2-2-1 1H9V2a6 6 0 0 0-2 0v2H6L5 3 4 4 3 5l1 1v1H2a6 6 0 0 0 0 2h2a4 4 0 0 0 0 1l-1 1 1 1a6 6 0 0 0 1 1l1-1a4 4 0 0 0 1 0v2Zm3-6a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"></path></svg></span></div></div>`;
-            
+
+                setting_btn.addEventListener("click", function () {
+                    "block" === kws.style.display ? kws.style.display="none" : kws.style.display="block";
+                })
+
                 widget.querySelector('.kvt-widget').insertAdjacentHTML("beforeend", '<div class="kvt-widget-settings"></div>')
                 let kws = widget.querySelector('.kvt-widget-settings')
 
-                kws.innerHTML = `<div class="pro-input-group sectionItem"><label>Показывать real-time принты лотностью от</label><input type="number" oninput="validity.valid||(value='');" name="lotSize_show" class="pro-input"></div><button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+                let settings_list = [];
+                
+                // Настройки
+                if (widgetType === 'spbTS') {
+                    settings_list = ['lotSize_show']
 
-                // <label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="group_size_time"><span class="pro-control-indicator"></span>NAME  </label>
+                    kws.innerHTML = `<div class="pro-input-group sectionItem"><label>Показывать real-time принты лотностью от</label><input type="number" oninput="validity.valid||(value='');" name="lotSize_show" class="pro-input"></div><button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+                }
 
-                let settings_list = ['lotSize_show']
+                if (widgetType === 'getdp') {
+                
+                    settings_list = ['subsgetdp', 'getdp_audio']
+    
+                    kws.innerHTML = `<label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="getdp_audio"><span class="pro-control-indicator"></span>Аудио уведомление </label>
+
+                    <label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="subsgetdp"><span class="pro-control-indicator"></span>MOEX </label>
+    
+                    <label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="subsgetdp2"><span class="pro-control-indicator"></span>SPBX BIG </label>
+    
+                    <label class="pro-control pro-switch pro-align-right sectionItem"><input type="checkbox" name="subsgetdp3"><span class="pro-control-indicator"></span>SPBX PRIVATE </label>
+                    
+                    <button type="button" class="pro-button pro-small pro-intent-primary"><span class="pro-button-text">Сохранить</span></button>`
+                }
 
                 // загружаем настройки
                 for (const id of settings_list) {
@@ -1167,10 +1197,7 @@ function kvtCreateWidget(widget) {
                     kws.style.display = 'none'
                 })
 
-                setting_btn.addEventListener("click", function () {
-                    "block" === kws.style.display ? kws.style.display="none" : kws.style.display="block";
-                })
-            }
+            }            
     
             // отписка при закрытии виджета
             widget.querySelector('[class*="src-core-components-WidgetBody-WidgetBody-icons-"] [data-qa-icon="cross"]').addEventListener("click", function () {
