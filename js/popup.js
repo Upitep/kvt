@@ -388,6 +388,39 @@ async function run() {
 
                 console.log(tinkoff_operations)
 
+                /* const yesterday = {}; //Определим позы оставшиеся со вчера
+
+                //Расчет поз которые были на начало дня, которые потом отсечем
+                tinkoff_operations.forEach(e => {
+                    console.log(e)
+                    if (!yesterday[e.ticker]){
+                        yesterday[e.ticker] = 0;
+                    }
+                    yesterday[e.ticker] += (e.doneRest * (e.type == "buy" ? -1 : 1));
+                })
+
+                console.table(yesterday)
+
+                //Отсекаем "вчерашние" позы
+                for (trade of tinkoff_operations){
+                    aqty = yesterday[trade.ticker];
+                    if (!aqty) {
+                        continue
+                    }
+                    cqty = trade.doneRest
+                    if ((cqty * aqty) < 0) {
+                        trade.doneRest = 0;
+                        yesterday[trade.ticker] -= cqty; //увеличим срезаемые операции, если были операции не гасящие вчерашний остаток
+                    } else {
+                        pqty = Math.min(cqty, aqty); //отрежем операции гасящие вчерашний остаток
+                        trade.doneRest -= pqty;
+                        yesterday[trade.ticker] -= pqty;
+                    }
+                }
+
+                console.table(yesterday) */
+                
+
                 tinkoff_operations.forEach(e => {
                     "RUR" === e.payment.currency && (e.payment.currency="RUB");
 
@@ -689,6 +722,8 @@ async function run() {
         }
 
         function generateTable (res) {    
+            
+            console.log(res)
     
             // Перебираем результат по тикерам, дополняя currs
             res.forEach(ticker => {
@@ -882,88 +917,151 @@ async function run() {
      * Загружаем группы тикеров
      */
     let tickersWindow = document.getElementById('tickersWindow'),
+        notifyBox = document.getElementById('notifyBox'),
         tickersGroups = document.getElementById('tickersGroups'),
         groupTickersList = document.getElementById('groupTickersList'),
         listTickersDelete = [];
 
     // загрузить группы тикеров
-    document.getElementById('kvLoadGroupsTicker').addEventListener('click', function (e) {
-        fetch("https://www.tinkoff.ru/api/invest/favorites/groups/list?appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {})
-            .then(res => res.json())
-            .then(res => {
-                res.payload.groups.forEach(s => {
-                    const option = document.createElement("option");
-                    option.value = s.id;
-                    option.text = s.name;
-                    tickersGroups.appendChild(option);
-                })
+    document.getElementById('kvLoadGroupsTicker').addEventListener('click', async function (e) {
+        notifyBox.innerHTML = 'Загрузка групп...'
+        let groups = await getFavoritesGroups(config.psid)
 
-                tickersWindow.classList.remove("d-none");
-            })
+        if (!groups) {
+            notifyBox.innerHTML = 'Нет групп или ошибка.'
+        }
+
+        groups.forEach(s => {
+            const option = document.createElement("option");
+            option.value = s.id;
+            option.text = s.name;
+            tickersGroups.appendChild(option);
+        })
+
+        tickersWindow.classList.remove("d-none");
+
+        notifyBox.innerHTML = '';
     });
 
-    // загрузить тикеры группы
-    tickersGroups.addEventListener('change', opt => {
 
-        fetch("https://www.tinkoff.ru/api/invest/favorites/groups/instruments/get?tag=All&sortType=Custom&groupId=" + opt.target.value + "&limit=1000&offset=0&appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid)
-            .then(res => res.json())
-            .then(e => {
-                listTickersDelete.splice(0, listTickersDelete.length)
-                groupTickersList.value = e.payload.instruments.map(item => listTickersDelete.push(item.ticker) && item.ticker).join(' ');
-            })
+    // загрузить тикеры группы
+    tickersGroups.addEventListener('change', async opt => {
+
+        let instruments = await getFavoritesInstrumentsByGroup(config.psid, opt.target.value)
+
+        listTickersDelete.splice(0, listTickersDelete.length)
+        groupTickersList.value = instruments.map(item => listTickersDelete.push(item.ticker) && item.ticker).join(' ');
     })
 
+
     // сохранить тикеры группы
-    document.getElementById('saveGroupTickers').addEventListener('click', function (e) {
+    document.getElementById('saveGroupTickers').addEventListener('click', async function (e) {
 
         let groupId = tickersGroups.value,
             items = groupTickersList.value.split(' ').map(item => item.toUpperCase());
 
-        fetch("https://www.tinkoff.ru/api/invest/favorites/groups/instruments/delete?groupId=" + groupId + "&appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({instruments: listTickersDelete})
-        }).then(
-            res => res.json()
-        ).then(res => {
-            fetch("https://www.tinkoff.ru/api/invest/favorites/groups/instruments/add?groupId=" + groupId + "&appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({instruments: items})
-            }).then(
-                res => res.json()
-            ).then(e => {
-                chrome.notifications.create("", {
-                    title: "Тикеры",
-                    message: e.status === 'Ok' ? 'Успешно сохранено' : e.payload.message,
-                    type: "basic",
-                    iconUrl: "icons/icon48.png"
-                })
-            });
-        })
+        notifyBox.innerHTML = 'Удаляю текущие инструменты из группы.'        
+        await deleteFavoritesInstrumentsInGroup(config.psid, groupId, listTickersDelete) // Удалим инструменты из группы
+
+        notifyBox.innerHTML = 'Добавляю новые инструменты в группу.'   
+        await addFavoritesInstrumentsInGroup(config.psid, groupId, items) // добавим в неё новые
+
+        notifyBox.innerHTML = 'Успешно сохранено.'
     })
 
-    // загрузить группы тикеров
-    /* document.getElementById('kvDownloadGroupsTicker').addEventListener('click', async function (e) {
-        let result = [];
-        
-        await fetch("https://www.tinkoff.ru/api/invest/favorites/groups/list?appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid, {})
-            .then(res => res.json())
-            .then(res => {
-                res.payload.groups.forEach(async s => {
-                    await fetch("https://www.tinkoff.ru/api/invest/favorites/groups/instruments/get?tag=All&sortType=Custom&groupId=" + s.id + "&limit=1000&offset=0&appName=invest_terminal&appVersion=" + config.versionApi + "&sessionId=" + config.psid)
-                    .then(res => res.json())
-                    .then(e => {                        
-                        let tickers = []
-                        e.payload.instruments.map(item => tickers.push(item.ticker) && item.ticker);
-                        result.push({id: s.id, name: s.name, tickers: tickers})
-                    })
-                })
-            })
 
-        console.log('result', result)
+    // экспорт групп и тикеров в них в *.json
+    document.getElementById('exportGroupsTickers').addEventListener('click', async function (e) {
         
-    }); */
+        notifyBox.innerHTML = 'Загрузка групп...'
+
+        let count = 1,
+            exportRes = [],
+            groups = await getFavoritesGroups(config.psid)
+            
+        for (let s of groups) {
+            notifyBox.innerHTML = `Загрузка тикеров из групп. ${count} из ${groups.length + 1}`
+
+            let instruments = await getFavoritesInstrumentsByGroup(config.psid, s.id),
+                tickers = [];
+           
+            instruments.map(item => tickers.push(item.ticker) && item.ticker);
+            exportRes.push({id: s.id, name: s.name, tickers: tickers})
+            count++
+        }
+
+        notifyBox.innerHTML = `Группы и тикеры загружены. Проверьте загрузки в браузере.`
+
+        let src = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportRes)),
+            link = document.createElement("a");
+
+        link.setAttribute("href", src);
+        link.setAttribute("download", "kvt_GroupsAndTickers.json");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+
+    // экспорт групп и тикеров в них в *.json
+    document.getElementById('importGroupsTickers').addEventListener('click', async function (e) {
+        document.getElementById('import-file').click();
+    });
+
+    document.getElementById('import-file').addEventListener('change', function(){
+        if (this.files.length > 0) {
+            let reader = new FileReader();
+
+            reader.addEventListener('load', async function() {
+                let result = JSON.parse(reader.result)
+                
+                // достаем текущие группы, что бы потом можно было по ID сравнить или по имени?
+                notifyBox.innerHTML = `Загружаем текущие группы`
+                let groups = await getFavoritesGroups(config.psid),
+                    count_created = 0
+
+                for (let item of result) {
+                    let findGroupKey = Object.keys(groups).find(key => groups[key].name === item.name) || null;
+
+                    if (findGroupKey) {
+                        await deleteFavoritesInstrumentsInGroup(config.psid, groups[findGroupKey].id, groups[findGroupKey].instruments)
+                        await addFavoritesInstrumentsInGroup(config.psid, groups[findGroupKey].id, item.instruments)
+                    } else {
+                        // создаем группу
+                        notifyBox.innerHTML = `Создаем группу <b>${item.name}</b>`
+                        await addFavoritesGroup(config.psid, item.name, item.tickers)
+                    }
+
+                    count_created++;
+                }
+
+                notifyBox.innerHTML = `Готово. Импортированно ${count_created} групп;`
+
+
+            });
+
+            reader.readAsText(this.files[0]); // Read the uploaded file
+        }
+    });
+
+
+    // удалить все избранные тикеры и группы
+    document.getElementById('deleteAllGroup').addEventListener('click', async function (e) {
+        if (confirm("Уверены что хотите удалить все группы избранного и тикеры?") == true) {
+            let count = 1,
+                groups = await getFavoritesGroups(config.psid)
+                
+            for (let s of groups) {
+                notifyBox.innerHTML = `Удаление групп и тикеров. ${count} из ${groups.length + 1}`
+
+                await deleteFavoritesGroup(config.psid, s.id)
+                count++
+            }
+
+            notifyBox.innerHTML = `Группы и тикеры удалены. Обновите страницу терминала.`
+        }
+    });
+
 
 
     /**
@@ -1190,10 +1288,164 @@ async function getBrokerAccounts (psid) {
     }).then(function (e) {
         return ((e.payload || {} ).accounts || [])
     }).catch(err => {
-        console.error(`[kvt] getBrokerAccounts ERR ${err}`)
+        console.error(`[kvt] getBrokerAccounts ERR`, err)
         return null
     })
 }
+
+/**
+ * Список групп инструментов
+ * @param {*} psid 
+ * @returns 
+ */
+async function getFavoritesGroups(psid) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/list?appName=invest_terminal&appVersion=2.0.0&sessionId=${psid}`, {})
+        .then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return (e.payload || {}).groups || []
+        }).catch(err => {
+            console.error(`[kvt] getFavoritesGroups ERR`, err)
+            return null
+        })
+}
+
+/**
+ * Создаем группу инструментов
+ * @param {*} psid 
+ */
+async function addFavoritesGroup(psid, groupName, instruments = []) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/create?appName=invest_terminal&appVersion=2.0.0&sessionId=${psid}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({color:"#C7E6FF",emoji:"🙂",instruments: instruments, name: groupName})
+    })
+        .then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return e
+        }).catch(err => {
+            console.error(`[kvt] addFavoritesGroup ERR`, err)
+            return null
+        })
+}
+
+/**
+ * Удалить группу инструментов
+ * @param {*} psid 
+ * @param {*} group_id 
+ * @returns 
+ */
+async function deleteFavoritesGroup(psid, group_id) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/delete?groupId=${group_id}&appName=invest_terminal&appVersion=2.0.0&sessionId=${psid}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+    })
+        .then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return e
+        }).catch(err => {
+            console.error(`[kvt] deleteFavoritesGroup ERR`, err)
+            return null
+        })
+}
+
+/**
+ * Список тикеров группы инструментов
+ * @param {*} psid 
+ * @param {*} group_id 
+ * @returns 
+ */
+async function getFavoritesInstrumentsByGroup(psid, group_id) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/instruments/get?appName=invest_terminal&appVersion=2.0.0&tag=All&sortType=Custom&groupId=${group_id}&limit=1000&offset=0&sessionId=${psid}`, {})
+        .then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return (e.payload || {}).instruments || []
+        }).catch(err => {
+            console.error(`[kvt] getFavoritesInstrumentsByGroup ERR`, err)
+            return null
+        })
+}
+
+/**
+ * Удалить тикеры из группы инструментов
+ * @param {*} psid 
+ * @param {*} group_id 
+ * @param {*} instruments 
+ * @returns 
+ */
+async function deleteFavoritesInstrumentsInGroup(psid, group_id, instruments) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/instruments/delete?appName=invest_terminal&appVersion=2.0.0&groupId=${group_id}&sessionId=${psid}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({instruments: instruments})
+    })
+        .then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return e
+        }).catch(err => {
+            console.error(`[kvt] deleteFavoritesInstrumentsInGroup ERR`, err)
+            return null
+        })
+}
+
+/**
+ * Добавить тикеры в группу инструментов
+ * @param {*} psid 
+ * @param {*} group_id 
+ * @param {*} instruments 
+ * @returns 
+ */
+async function addFavoritesInstrumentsInGroup(psid, group_id, instruments) {
+    return await fetch(`https://www.tinkoff.ru/api/invest/favorites/groups/instruments/add?appName=invest_terminal&appVersion=2.0.0&groupId=${group_id}&sessionId=${psid}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({instruments: instruments})
+        }).then(e => {
+            if (e.ok === true && e.status === 200) {
+                return e.json()
+            } else {
+                throw e
+            }
+        })
+        .then(e => {
+            return e
+        }).catch(err => {
+            console.error(`[kvt] addFavoritesInstrumentsInGroup ERR`, err)
+            return null
+        })
+}
+
+
+
 
 run()
 

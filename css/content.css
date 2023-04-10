@@ -492,6 +492,12 @@ span[data-kvt-volume]:hover {
     height: 20px !important;
 }
 
+/* значек рядом с логотипом  */
+.kvt-compactStyle [class*=src-components-Logo-Logo-overlayIconBase-] {
+    width: 22px !important;
+    height: 23px !important;
+}
+
 .kvt-compactStyle [class*=src-components-Logo-Logo-overlayIcon-] svg {
     width: 12px;
     height: 12px;

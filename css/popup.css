@@ -215,6 +215,28 @@ label {
     color: #4b4b4b;
 }
 
+.btn-success {
+    background: #199119;
+    border-color: #085c08;
+    color: white;
+}
+.btn-success:hover {
+    background: #0f790f;
+    border-color: #033e03;
+    color: white;
+}
+
+.btn-danger {
+    background: #b63e4c;
+    border-color: #340208;
+    color: #ffffff;
+}
+.btn-danger:hover {
+    background: #932935;
+    border-color: #1e0105;
+    color: #ffffff;
+}
+
 /**
  * табы
  */

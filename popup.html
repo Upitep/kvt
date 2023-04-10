@@ -77,11 +77,18 @@
 		<!-- тикеры -->
 		<div id="tickers" class="b-tab">
 
-			<p class="mt-0 mb-2">Быстрое управление списком избранных бумаг. Группы предварительно должны быть созданы.</p>
+			<p class="mt-0 mb-2">Быстрое управление списком избранных бумаг (виджет инструменты).<br/>Группы предварительно должны быть созданы.</p>
 
 			<div class="form-group">
-				<button id="kvLoadGroupsTicker" class="btn">Загрузить группы и тикеры</button>
-				<!-- <button id="kvDownloadGroupsTicker" class="btn">Экспорт в *.json</button> -->
+				<button id="kvLoadGroupsTicker" class="btn btn-success">Загрузить группы и тикеры</button>
+
+				<span style="margin: 0 1px">или</span>
+
+				<button id="exportGroupsTickers" class="btn" title="Экспорт всех групп и тикеров в специальный *.json файл для последующего импорта.">Экспорт json</button>
+				
+				<input type="file" id="import-file" name="import-file" accept="application/json" style="display: none;">
+				<button id="importGroupsTickers" class="btn">Импорт json</button>
+				<button id="deleteAllGroup" class="btn btn-danger" style="display:none">Удалить группы</button>
 			</div>
 			
 			<div id="tickersWindow" class="d-none">
@@ -99,6 +106,9 @@
 					<button id="saveGroupTickers" class="btn">Сохранить</button>
 				</div>
 			</div>
+
+			<div id="notifyBox"></div>
+
 		</div>
 		
 		<!-- настройки -->
