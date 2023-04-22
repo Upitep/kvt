@@ -281,32 +281,31 @@ async function run() {
 
                     if (e.symbol && e.qty && d >= fromDateTime && d <= toDateTime ) {
 
-                        let tc = e.symbol;
-                        
-                        nl(tc, e)
+                        let id = e.symbol;
+                        newLine(id, e.symbol, '', 'trade', '', e.exchange)
 
                         if (e.side === "sell") {
-                            tickers[tc]["Сделок продажи"]++
-                            tickers[tc]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[tc]["Количество"] -= (e.qty || 0);
-                            tickers[tc]["Комиссия"] += Math.abs(e.commission || 0)
+                            tickers[id]["Сделок продажи"]++
+                            tickers[id]["Сумма продаж"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[id]["Количество"] -= (e.qty || 0);
+                            tickers[id]["Комиссия"] += Math.abs(e.commission || 0)
 
-                            if (tickers[tc]["Количество"] === 0) {
-                                tickers[tc]["Сумма открытой позы"] = 0;
+                            if (tickers[id]["Количество"] === 0) {
+                                tickers[id]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tc]["Сумма открытой позы"] -= Math.abs((e.price * e.qty) || 0)
+                                tickers[id]["Сумма открытой позы"] -= Math.abs((e.price * e.qty) || 0)
                             }
 
                         } else if (e.side === "buy") {
-                            tickers[tc]["Сделок покупки"]++
-                            tickers[tc]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
-                            tickers[tc]["Количество"] += e.qty;
-                            tickers[tc]["Комиссия"] += Math.abs(e.commission || 0)
+                            tickers[id]["Сделок покупки"]++
+                            tickers[id]["Сумма покупок"] += Math.abs((e.price * e.qty) || 0)
+                            tickers[id]["Количество"] += e.qty;
+                            tickers[id]["Комиссия"] += Math.abs(e.commission || 0)
 
-                            if (tickers[tc]["Количество"] === 0) {
-                                tickers[tc]["Сумма открытой позы"] = 0;
+                            if (tickers[id]["Количество"] === 0) {
+                                tickers[id]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tc]["Сумма открытой позы"] += Math.abs((e.price * e.qty) || 0)
+                                tickers[id]["Сумма открытой позы"] += Math.abs((e.price * e.qty) || 0)
                             }
                         }
                     }
@@ -388,83 +387,60 @@ async function run() {
 
                 console.log(tinkoff_operations)
 
-                /* const yesterday = {}; //Определим позы оставшиеся со вчера
-
-                //Расчет поз которые были на начало дня, которые потом отсечем
-                tinkoff_operations.forEach(e => {
-                    console.log(e)
-                    if (!yesterday[e.ticker]){
-                        yesterday[e.ticker] = 0;
-                    }
-                    yesterday[e.ticker] += (e.doneRest * (e.type == "buy" ? -1 : 1));
-                })
-
-                console.table(yesterday)
-
-                //Отсекаем "вчерашние" позы
-                for (trade of tinkoff_operations){
-                    aqty = yesterday[trade.ticker];
-                    if (!aqty) {
-                        continue
-                    }
-                    cqty = trade.doneRest
-                    if ((cqty * aqty) < 0) {
-                        trade.doneRest = 0;
-                        yesterday[trade.ticker] -= cqty; //увеличим срезаемые операции, если были операции не гасящие вчерашний остаток
-                    } else {
-                        pqty = Math.min(cqty, aqty); //отрежем операции гасящие вчерашний остаток
-                        trade.doneRest -= pqty;
-                        yesterday[trade.ticker] -= pqty;
-                    }
-                }
-
-                console.table(yesterday) */
-                
-
                 tinkoff_operations.forEach(e => {
                     "RUR" === e.payment.currency && (e.payment.currency="RUB");
 
-                    let tc = `${e.ticker || e.isin}_${e.payment.currency || ''}`,
-                        c = e.payment.currency || '';
+                    let c = e.payment.currency || '';
+
+                    let id;
+
+                    if (['coupon', 'taxCpn'].includes(e.type)) {
+                        id = `${e.isin}_${e.payment.currency || ''}_coupon`
+                    }
+
+                    if (['taxDvd', 'dividend'].includes(e.type)) {
+                        id = `${e.isin}_${e.payment.currency || ''}_dividend`
+                    }
+
+                    if (['sell', 'buy', 'brokCom'].includes(e.type)) {
+                        id = `${e.ticker}_${e.payment.currency || ''}`
+                    }
 
                     if (e.instrumentType === 'futures') {
-                        tc = `${e.ticker}_Pt.`
-                        nl(tc, e, 'futures')                     
+                        id = `${e.ticker}_Pt.`
+                        newLine(id, e.ticker, e.payment.currency, 'futures', e.name)
                     }
+
 
                     switch (e.type) {
                         case 'sell' : {
                             currs(c)
-                            nl(tc, e)
+                            newLine(id, e.ticker, e.payment.currency, 'trade')
+                               
+                            tickers[id]["Сделок продажи"]++;
+                            tickers[id]["Сумма продаж"] += Math.abs(e.payment.value || 0)
+                            tickers[id]["Количество"] -= (e.doneRest || 0);
 
-                            let paymentVal = e.payment.value
-                                
-                            tickers[tc]["Сделок продажи"]++;
-                            tickers[tc]["Сумма продаж"] += Math.abs(paymentVal || 0)
-                            tickers[tc]["Количество"] -= (e.doneRest || 0);
-
-                            if (tickers[tc]["Количество"] === 0) {
-                                tickers[tc]["Сумма открытой позы"] = 0;
+                            if (tickers[id]["Количество"] === 0) {
+                                tickers[id]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tc]["Сумма открытой позы"] -= Math.abs(paymentVal || 0)
+                                tickers[id]["Сумма открытой позы"] -= Math.abs(e.payment.value || 0)
                             }
                             break
                         }
 
                         case 'buy' : {
                             currs(c)
-                            nl(tc, e)
-
-                            let paymentVal = e.payment.value
+                            newLine(id, e.ticker, e.payment.currency, 'trade')
                                                         
-                            tickers[tc]["Сделок покупки"]++;                            
-                            tickers[tc]["Сумма покупок"] += Math.abs(paymentVal || 0);
-                            tickers[tc]["Количество"] += e.doneRest;                             
+                            tickers[id]["Сделок покупки"]++;                            
+                            tickers[id]["Сумма покупок"] += Math.abs(e.payment.value || 0);
+                            tickers[id]["Количество"] += e.doneRest;                             
 
-                            if (tickers[tc]["Количество"] === 0) {
-                                tickers[tc]["Сумма открытой позы"] = 0;
+                            if (tickers[id]["Количество"] === 0) {
+                                tickers[id]["Сумма открытой позы"] = 0;
                             } else {
-                                tickers[tc]["Сумма открытой позы"] += Math.abs(paymentVal || 0)
+                                tickers[id]["Сумма открытой позы"] += Math.abs(e.payment.value || 0)
                             }                                                       
 
                             break
@@ -500,22 +476,23 @@ async function run() {
                         // Комиссия брокера
                         case 'brokCom' : {
                             currs(c)
-                            nl(tc, e)
-                            tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
+                            newLine(id, e.ticker, e.payment.currency)
+
+                            tickers[id]["Комиссия"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Комиссия'] += Math.abs(e.payment.value || 0)                            
                             break
                         }
 
                         // Удержание налога
                         case 'tax' : {
-                            currs(c)                        
+                            currs(c)
                             corrss[c]['НДФЛ'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание налога по ставке 15%
                         case 'tax15' : {
-                            currs(c)                            
+                            currs(c)
                             corrss[c]['НДФЛ'] += Math.abs(e.payment.value || 0)
                             //corrss[c]['НДФЛ 15%'] += Math.abs(e.payment.value || 0)
                             break
@@ -523,21 +500,21 @@ async function run() {
 
                         // Корректировка налога
                         case 'taxBack' : {
-                            currs(c)                           
+                            currs(c)
                             corrss[c]['НДФЛ'] -= Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Списание комиссии за обслуживание
                         case 'regCom' : {
-                            currs(c)                            
+                            currs(c)
                             corrss[c]['Обслуживание'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Гербовый сбор                        
                         case 'stampDuty' : {
-                            currs(c)                           
+                            currs(c)
                             corrss[c]['Гербовый сбор'] += Math.abs(e.payment.value || 0)
                             break
                         }
@@ -551,7 +528,7 @@ async function run() {
 
                         // Списание комиссии за следование
                         case 'followingCom' : {
-                            currs(c)                            
+                            currs(c)
                             corrss[c]['Автоследование'] += Math.abs(e.payment.value || 0)
                             break
                         }
@@ -565,43 +542,50 @@ async function run() {
 
                         // Выплата купонов по облигациям
                         case 'coupon' : {
-                            tc = `${e.isin}_${e.payment.currency || ''}_coupon`
+                            let id = `${e.isin}_${e.payment.currency || ''}_coupon`
+                            newLine(id, e.isin, e.payment.currency, 'coupon', e.name)                            
                             currs(c)
-                            nl(tc, e, 'coupon');
+                            
+                            tickers[id]["Сумма покупок"] += 0;
+                            tickers[id]["Сумма продаж"] += Math.abs(e.payment.value || 0)
 
-                            tickers[tc]["Сумма покупок"] += 0;
-                            tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Купоны'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание НДФЛ по купонам
                         case 'taxCpn' : {
-                            tc = `${e.isin}_${e.payment.currency || ''}_coupon`
-                            currs(c)
-                            nl(tc, e, 'coupon');
                             
-                            tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
+                            let id = `${e.isin}_${e.payment.currency || ''}_coupon`
+                            newLine(id, e.isin, e.payment.currency, 'coupon')
+                            currs(c)
+                            
+                            tickers[id]["Комиссия"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Купоны налог'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Выплата дивидендов по акциям
                         case 'dividend' : {
-                            currs(c)
-                            nl(tc+="dividend", e, 'dividend');
 
-                            tickers[tc]["Сумма покупок"] = 0;
-                            tickers[tc]["Сумма продаж"] += Math.abs(e.payment.value || 0)
+                            let id = `${e.isin}_${e.payment.currency || ''}_dividend`
+                            newLine(id, e.isin, e.payment.currency, 'dividend', e.name)
+                            currs(c)
+
+                            tickers[id]["Сумма покупок"] = 0;
+                            tickers[id]["Сумма продаж"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Дивиденды'] += Math.abs(e.payment.value || 0)
                             break
                         }
 
                         // Удержание НДФЛ по дивидендам
                         case 'taxDvd' : {
+
+                            let id = `${e.isin}_${e.payment.currency || ''}_dividend`
+                            newLine(id, e.isin, e.payment.currency, 'dividend')
                             currs(c)
-                            nl(tc+="dividend", e, 'dividend');
-                            tickers[tc]["Комиссия"] += Math.abs(e.payment.value || 0)
+                            
+                            tickers[id]["Комиссия"] += Math.abs(e.payment.value || 0)
                             corrss[c]['Дивиденды налог'] += Math.abs(e.payment.value || 0)
                             break
                         }
@@ -664,25 +648,30 @@ async function run() {
         generateTable(result)
 
         /**
-         * Список тикеров - профит
+         * Список тикеров - Детали
+         * @param {*} id symbol_type
+         * @param {*} symbol 
+         * @param {*} currency RUB, USD, HKD
+         * @param {*} type trade, coupon, futures, dividend
+         * @param {*} companyName 
+         * @param {*} exchange 
          */
-        function nl(tc, e, type = 'trade') {
-            if (void 0 === tickers[tc]) {
-                let ts = {};
-                ts["type"] = type;
-                ts["Тикер"] = e.ticker || e.isin || e.symbol;                
-                ts["Валюта"] = e.currency || (e.payment && e.payment.currency) || '';
-                ts["Комиссия"] = 0;
-                ts["Сумма покупок"] = 0;
-                ts["Сумма продаж"] = 0;
-                ts["Профит фьюч"] = 0; // для фьючей
-                ts["Сделок покупки"] = 0;
-                ts["Сделок продажи"] = 0;
-                ts["Количество"] = 0;
-                ts["Сумма открытой позы"] = 0;
-                ts["exchange"] = e.exchange || '';
-
-                tickers[tc] = ts;
+        function newLine (id, symbol, currency = '', type = '', companyName = '', exchange = '') {
+            if (!tickers[id]) {
+                tickers[id] = {
+                    "type": type,
+                    "Тикер": symbol,
+                    "Валюта": currency,
+                    "companyName": companyName,
+                    "exchange": exchange,
+                    "Комиссия": 0,
+                    "Сумма покупок": 0,
+                    "Сумма продаж": 0,
+                    "Сделок покупки": 0,
+                    "Сделок продажи": 0,
+                    "Количество": 0,
+                    "Сумма открытой позы": 0,
+                };
             }
         }
 
@@ -723,7 +712,8 @@ async function run() {
 
         function generateTable (res) {    
             
-            console.log(res)
+            console.log('res', res)
+            console.log('corrss', corrss)
     
             // Перебираем результат по тикерам, дополняя currs
             res.forEach(ticker => {
@@ -1271,7 +1261,6 @@ function downloadCSV (jsonData, filename = 'CSV') {
 document.body.addEventListener( 'click', function ( e ) {
     if( e.target.classList.contains("btnShowMore")) { 
         let block = e.target.parentElement.querySelector('.hidden')
-        console.log('adafdadsf', block)
         "block" === block.style.display ? block.style.display="none" : block.style.display="block";
     };
 });
