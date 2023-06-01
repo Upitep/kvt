@@ -158,8 +158,10 @@ class KvaloodTools {
         }
 
         if (targetSum) {
-            let {price} = await this.getSymbolPriceLot(widget, symbol);
-            this.setFastVolume(widget, (targetSum / price / assetSymbol.lotSize).toFixed());       
+            setTimeout(async () => {
+                let {price} = await this.getSymbolPriceLot(widget, symbol);
+                this.setFastVolume(widget, (targetSum / price / assetSymbol.lotSize).toFixed());
+            }, 600)
         }
     }
 
@@ -170,7 +172,6 @@ class KvaloodTools {
      */
     async getSymbolPriceLot(widget, symbol) {
         let price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
-            lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,""),
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
             future_price = 0;
 
@@ -259,9 +260,10 @@ class KvaloodTools {
         let vol = e.getAttribute('data-kvt-volume');
         let widget = e.closest('[data-widget-type="COMBINED_ORDER_WIDGET"]')        
         let price_block = widget.querySelector('[class^="src-components-OrderHeader-styles-price-"] > div').innerHTML,
-            lot_size = widget.querySelector('[class^="src-modules-CombinedOrder-components-OrderForm-OrderForm-leftInput-"]').nextSibling.querySelector('[class^="pro-input-right-container-icon"]').innerHTML.replace(/[^0-9]/g,""),
             price = parseFloat(price_block.replace(/\s+/g, '').replace(/[,]+/g, '.')),
             future_price = 0;
+
+        let assetSymbol = this.getWidgetAssetDetail(widget)
 
         if (price_block.endsWith('пт.')) {
             if (!kvtSettings.brokerAccountId) {
@@ -276,7 +278,7 @@ class KvaloodTools {
 
         let prc = future_price !== 0 ? future_price : price
 
-        this.setFastVolume(widget, Number((vol / prc / lot_size).toFixed()))
+        this.setFastVolume(widget, Number((vol / prc / assetSymbol.lotSize).toFixed()))
     }
 
     /**
@@ -522,15 +524,14 @@ class KvaloodTools {
     getActiveGroupsWidget() {
         let activeGroupsIds = [];
 
-        document.querySelectorAll('[data-widget-type="COMBINED_ORDER_WIDGET"]').forEach(function (widget) {
-            for (var group_id in kvtGroups) {
-                if (widget.querySelector('div[class^="src-core-components-GroupMenu-GroupMenu-icon-"][style*="color: ' + kvtGroups[group_id] + '"]')) {
-                    if (!activeGroupsIds.includes(group_id)) {
-                        activeGroupsIds.push(group_id)
-                    }
-                }
+        document.querySelectorAll('div[class^="src-core-components-GroupMenu-GroupMenu-icon-"]').forEach(item => {
+            let group_id = Object.keys(kvtGroups).find(key => kvtGroups[key] === item.style.color)
+
+            if (group_id && !activeGroupsIds.includes(group_id)) {
+                activeGroupsIds.push(group_id)
             }
         })
+             
         return activeGroupsIds.sort((a, b) => a - b);
     }
 
